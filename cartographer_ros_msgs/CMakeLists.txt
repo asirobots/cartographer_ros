@@ -12,39 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 
 project(cartographer_ros_msgs)
 
-set(PACKAGE_DEPENDENCIES
-  geometry_msgs
-)
+if(NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra")
+endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
 google_initialize_cartographer_project()
 
-find_package(catkin REQUIRED COMPONENTS message_generation ${PACKAGE_DEPENDENCIES})
-
-add_message_files(
-  FILES
-    SubmapList.msg
-    TrajectorySubmapList.msg
-    SubmapEntry.msg
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/SubmapList.msg"
+  "msg/TrajectorySubmapList.msg"
+  "msg/SubmapEntry.msg"
+  "srv/FinishTrajectory.srv"
+  "srv/SubmapQuery.srv"
+  DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
+  ADD_LINTER_TESTS
 )
 
-add_service_files(
-  FILES
-    SubmapQuery.srv
-    FinishTrajectory.srv
-)
+ament_export_dependencies(rosidl_default_runtime)
 
-generate_messages(
-  DEPENDENCIES
-    geometry_msgs
-)
-
-catkin_package(
-  CATKIN_DEPENDS
-    ${PACKAGE_DEPENDENCIES}
-)
+ament_package()
