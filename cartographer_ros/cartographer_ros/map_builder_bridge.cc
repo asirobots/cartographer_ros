@@ -65,8 +65,8 @@ void MapBuilderBridge::WriteAssets(const string& stem) {
 }
 
 bool MapBuilderBridge::HandleSubmapQuery(
-    cartographer_ros_msgs::SubmapQuery::Request& request,
-    cartographer_ros_msgs::SubmapQuery::Response& response) {
+                                         const std::shared_ptr<::cartographer_ros_msgs::SubmapQuery::Request> request,
+                                         std::shared_ptr<::cartographer_ros_msgs::SubmapQuery::Response> response) {
   cartographer::mapping::proto::SubmapQuery::Response response_proto;
   const std::string error = map_builder_.SubmapToProto(
       request.trajectory_id, request.submap_index, &response_proto);

@@ -19,6 +19,7 @@
 #include <chrono>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "Eigen/Core"
 #include "cartographer/common/make_unique.h"
@@ -66,8 +67,14 @@ Node::~Node() {
 void Node::Initialize() {
   carto::common::MutexLocker lock(&mutex_);
   submap_list_publisher_ = node_handle_->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(kSubmapListTopic, rmw_qos_profile_default);
-  //submap_query_server_ = node_handle_->create_service<::cartographer_ros_msgs::srv::SubmapQuery>(
-  //    kSubmapQueryServiceName, &Node::HandleSubmapQuery);
+  submap_query_server_ = node_handle_->create_service<::cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName,
+                                                                                                 [this] (
+                                                                                                    const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
+                                                                                                    std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response)
+                                                                                                 {
+                                                                                                   carto::common::MutexLocker lock(&mutex_);
+                                                                                                   map_builder_bridge_.HandleSubmapQuery(request, response);
+                                                                                                 });
 
   if (options_.map_builder_options.use_trajectory_builder_2d()) {
     occupancy_grid_publisher_ =
@@ -87,13 +94,6 @@ void Node::Initialize() {
 ::rclcpp::node::Node::SharedPtr Node::node_handle() { return node_handle_; }
 
 MapBuilderBridge* Node::map_builder_bridge() { return &map_builder_bridge_; }
-
-// void Node::HandleSubmapQuery(const std::shared_ptr<rmw_request_id_t> request_header,
-//                              const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
-//                              std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response) {
-//   carto::common::MutexLocker lock(&mutex_);
-//   map_builder_bridge_.HandleSubmapQuery(request_header, request, response);
-// }
 
 void Node::PublishSubmapList() {
   carto::common::MutexLocker lock(&mutex_);

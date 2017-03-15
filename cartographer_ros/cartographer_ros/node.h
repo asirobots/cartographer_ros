@@ -61,10 +61,6 @@ class Node {
   MapBuilderBridge* map_builder_bridge();
 
  private:
-  //void HandleSubmapQuery(const std::shared_ptr<rmw_request_id_t> request_header,
-  //                       const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
-  //                       std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response);
-
   void PublishSubmapList();
   void PublishTrajectoryStates();
   void SpinOccupancyGridThreadForever();

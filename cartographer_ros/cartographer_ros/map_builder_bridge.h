@@ -51,8 +51,7 @@ class MapBuilderBridge {
   void FinishTrajectory(int trajectory_id);
   void WriteAssets(const string& stem);
 
-  void HandleSubmapQuery(const std::shared_ptr<rmw_request_id_t> request_header,
-                         const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
+  void HandleSubmapQuery(const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
                          std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response);
 
   cartographer_ros_msgs::msg::SubmapList GetSubmapList();
