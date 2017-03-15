@@ -45,7 +45,7 @@ SensorBridge::SensorBridge(
       trajectory_builder_(trajectory_builder) {}
 
 void SensorBridge::HandleOdometryMessage(
-    const string& sensor_id, const nav_msgs::Odometry::ConstPtr& msg) {
+                                         const string& sensor_id, const nav_msgs::msg::Odometry::ConstPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->child_frame_id));
@@ -57,7 +57,7 @@ void SensorBridge::HandleOdometryMessage(
 }
 
 void SensorBridge::HandleImuMessage(const string& sensor_id,
-                                    const sensor_msgs::Imu::ConstPtr& msg) {
+                                    const sensor_msgs::msg::Imu::ConstPtr& msg) {
   CHECK_NE(msg->linear_acceleration_covariance[0], -1);
   CHECK_NE(msg->angular_velocity_covariance[0], -1);
   const carto::common::Time time = FromRos(msg->header.stamp);
@@ -76,31 +76,33 @@ void SensorBridge::HandleImuMessage(const string& sensor_id,
 }
 
 void SensorBridge::HandleLaserScanMessage(
-    const string& sensor_id, const sensor_msgs::LaserScan::ConstPtr& msg) {
+                                          const string& sensor_id, const sensor_msgs::msg::LaserScan::ConstPtr& msg) {
   HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
 
 void SensorBridge::HandleMultiEchoLaserScanMessage(
     const string& sensor_id,
-    const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg) {
+    const sensor_msgs::msg::MultiEchoLaserScan::ConstPtr& msg) {
   HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
 
+#if 0
 template<typename T>
-void fromROSMsg(const sensor_msgs::PointCloud2 &cloud, pcl::PointCloud<T> &pcl_cloud)
+void fromROSMsg(const sensor_msgs::msg::PointCloud2 &cloud, pcl::PointCloud<T> &pcl_cloud)
 {
   pcl::PCLPointCloud2 pcl_pc2;
   pcl_conversions::toPCL(cloud, pcl_pc2);
   pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
 }
+#endif
 
 void SensorBridge::HandlePointCloud2Message(
-    const string& sensor_id, const sensor_msgs::PointCloud2::ConstPtr& msg) {
+                                            const string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstPtr& msg) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
   //pcl::fromROSMsg(*msg, pcl_point_cloud);
-  fromROSMsg(*msg, pcl_point_cloud);
+  //fromROSMsg(*msg, pcl_point_cloud);
   carto::sensor::PointCloud point_cloud;
   for (const auto& point : pcl_point_cloud) {
     point_cloud.emplace_back(point.x, point.y, point.z);

@@ -63,10 +63,14 @@ MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
   "cartographer_ros/map_builder_bridge.cc"
   "cartographer_ros/node.cc"
-  "cartographer_ros/node_main.cc"
   "cartographer_ros/node_options.cc"
+  "cartographer_ros/sensor_bridge.cc"
+  "cartographer_ros/tf_bridge.cc"
+  "cartographer_ros/time_conversion.cc"
   )
 add_library(${PROJECT_NAME} ${ALL_SRCS})
+
+target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
 
 # Eigen
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
@@ -89,6 +93,16 @@ foreach(DEFINITION ${PCL_DEFINITIONS})
 endforeach()
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLUDE_DIRS})
+
+add_subdirectory("cartographer_ros")
+
+install(TARGETS
+  ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+ament_package()
 
 # cmake_minimum_required(VERSION 2.8.12)  # Ships with Ubuntu 14.04 (Trusty)
 
