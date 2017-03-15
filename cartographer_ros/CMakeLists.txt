@@ -61,7 +61,9 @@ list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
 list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
 MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
+  "cartographer_ros/map_builder_bridge.cc"
   "cartographer_ros/node.cc"
+  "cartographer_ros/node_options.cc"
   )
 add_library(${PROJECT_NAME} ${ALL_SRCS})
 
