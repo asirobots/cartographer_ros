@@ -63,6 +63,7 @@ MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
   "cartographer_ros/map_builder_bridge.cc"
   "cartographer_ros/node.cc"
+  "cartographer_ros/node_main.cc"
   "cartographer_ros/node_options.cc"
   )
 add_library(${PROJECT_NAME} ${ALL_SRCS})
