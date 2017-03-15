@@ -62,6 +62,7 @@ list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
 MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
   "cartographer_ros/map_builder_bridge.cc"
+  "cartographer_ros/msg_conversion.cc"
   "cartographer_ros/node.cc"
   "cartographer_ros/node_options.cc"
   "cartographer_ros/sensor_bridge.cc"

@@ -28,8 +28,8 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
 #include "glog/logging.h"
-#include "ros/ros.h"
-#include "ros/serialization.h"
+//#include "ros/ros.h"
+//#include "ros/serialization.h"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
@@ -47,10 +47,10 @@ constexpr float kPointCloudComponentFourMagic = 1.;
 using ::cartographer::transform::Rigid3d;
 using ::cartographer::kalman_filter::PoseCovariance;
 
-sensor_msgs::PointCloud2 PreparePointCloud2Message(const int64 timestamp,
+sensor_msgs::msg::PointCloud2 PreparePointCloud2Message(const int64 timestamp,
                                                    const string& frame_id,
                                                    const int num_points) {
-  sensor_msgs::PointCloud2 msg;
+  sensor_msgs::msg::PointCloud2 msg;
   msg.header.stamp = ToRos(::cartographer::common::FromUniversal(timestamp));
   msg.header.frame_id = frame_id;
   msg.height = 1;
@@ -78,10 +78,10 @@ sensor_msgs::PointCloud2 PreparePointCloud2Message(const int64 timestamp,
 
 }  // namespace
 
-sensor_msgs::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
+sensor_msgs::msg::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::proto::LaserScan& laser_scan) {
-  sensor_msgs::MultiEchoLaserScan msg;
+  sensor_msgs::msg::MultiEchoLaserScan msg;
   msg.header.stamp = ToRos(::cartographer::common::FromUniversal(timestamp));
   msg.header.frame_id = frame_id;
 
@@ -107,10 +107,10 @@ sensor_msgs::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
   return msg;
 }
 
-sensor_msgs::LaserScan ToLaserScan(
+sensor_msgs::msg::LaserScan ToLaserScan(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::proto::LaserScan& laser_scan) {
-  sensor_msgs::LaserScan msg;
+  sensor_msgs::msg::LaserScan msg;
   msg.header.stamp = ToRos(::cartographer::common::FromUniversal(timestamp));
   msg.header.frame_id = frame_id;
 
@@ -146,7 +146,7 @@ sensor_msgs::LaserScan ToLaserScan(
   return msg;
 }
 
-sensor_msgs::PointCloud2 ToPointCloud2Message(
+sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::PointCloud& point_cloud) {
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
@@ -160,7 +160,7 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
   return msg;
 }
 
-sensor_msgs::PointCloud2 ToPointCloud2Message(
+sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::proto::LaserFan& laser_fan) {
   CHECK(::cartographer::transform::ToEigen(laser_fan.origin()).norm() == 0)
@@ -183,7 +183,7 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
 }
 
 ::cartographer::sensor::proto::LaserScan ToCartographer(
-    const sensor_msgs::LaserScan& msg) {
+    const sensor_msgs::msg::LaserScan& msg) {
   ::cartographer::sensor::proto::LaserScan proto;
   proto.set_angle_min(msg.angle_min);
   proto.set_angle_max(msg.angle_max);
@@ -204,7 +204,7 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
 }
 
 ::cartographer::sensor::proto::LaserScan ToCartographer(
-    const sensor_msgs::MultiEchoLaserScan& msg) {
+    const sensor_msgs::msg::MultiEchoLaserScan& msg) {
   ::cartographer::sensor::proto::LaserScan proto;
   proto.set_angle_min(msg.angle_min);
   proto.set_angle_max(msg.angle_max);
@@ -229,21 +229,21 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
   return proto;
 }
 
-Rigid3d ToRigid3d(const geometry_msgs::TransformStamped& transform) {
+Rigid3d ToRigid3d(const geometry_msgs::msg::TransformStamped& transform) {
   return Rigid3d(ToEigen(transform.transform.translation),
                  ToEigen(transform.transform.rotation));
 }
 
-Rigid3d ToRigid3d(const geometry_msgs::Pose& pose) {
+Rigid3d ToRigid3d(const geometry_msgs::msg::Pose& pose) {
   return Rigid3d({pose.position.x, pose.position.y, pose.position.z},
                  ToEigen(pose.orientation));
 }
 
-Eigen::Vector3d ToEigen(const geometry_msgs::Vector3& vector3) {
+Eigen::Vector3d ToEigen(const geometry_msgs::msg::Vector3& vector3) {
   return Eigen::Vector3d(vector3.x, vector3.y, vector3.z);
 }
 
-Eigen::Quaterniond ToEigen(const geometry_msgs::Quaternion& quaternion) {
+Eigen::Quaterniond ToEigen(const geometry_msgs::msg::Quaternion& quaternion) {
   return Eigen::Quaterniond(quaternion.w, quaternion.x, quaternion.y,
                             quaternion.z);
 }
@@ -252,8 +252,8 @@ PoseCovariance ToPoseCovariance(const boost::array<double, 36>& covariance) {
   return Eigen::Map<const Eigen::Matrix<double, 6, 6>>(covariance.data());
 }
 
-geometry_msgs::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
-  geometry_msgs::Transform transform;
+geometry_msgs::msg::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
+  geometry_msgs::msg::Transform transform;
   transform.translation.x = rigid3d.translation().x();
   transform.translation.y = rigid3d.translation().y();
   transform.translation.z = rigid3d.translation().z();
@@ -264,8 +264,8 @@ geometry_msgs::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
   return transform;
 }
 
-geometry_msgs::Pose ToGeometryMsgPose(const Rigid3d& rigid3d) {
-  geometry_msgs::Pose pose;
+geometry_msgs::msg::Pose ToGeometryMsgPose(const Rigid3d& rigid3d) {
+  geometry_msgs::msg::Pose pose;
   pose.position.x = rigid3d.translation().x();
   pose.position.y = rigid3d.translation().y();
   pose.position.z = rigid3d.translation().z();
