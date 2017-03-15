@@ -25,7 +25,7 @@ void BuildOccupancyGrid(
     const std::vector<::cartographer::mapping::TrajectoryNode>&
         trajectory_nodes,
     const NodeOptions& options,
-    ::nav_msgs::OccupancyGrid* const occupancy_grid) {
+    ::nav_msgs::msg::OccupancyGrid* const occupancy_grid) {
   namespace carto = ::cartographer;
   CHECK(options.map_builder_options.use_trajectory_builder_2d())
       << "Publishing OccupancyGrids for 3D data is not yet supported";

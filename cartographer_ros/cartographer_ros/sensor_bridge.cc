@@ -88,10 +88,19 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
 
+template<typename T>
+void fromROSMsg(const sensor_msgs::PointCloud2 &cloud, pcl::PointCloud<T> &pcl_cloud)
+{
+  pcl::PCLPointCloud2 pcl_pc2;
+  pcl_conversions::toPCL(cloud, pcl_pc2);
+  pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
+}
+
 void SensorBridge::HandlePointCloud2Message(
     const string& sensor_id, const sensor_msgs::PointCloud2::ConstPtr& msg) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
-  pcl::fromROSMsg(*msg, pcl_point_cloud);
+  //pcl::fromROSMsg(*msg, pcl_point_cloud);
+  fromROSMsg(*msg, pcl_point_cloud);
   carto::sensor::PointCloud point_cloud;
   for (const auto& point : pcl_point_cloud) {
     point_cloud.emplace_back(point.x, point.y, point.z);

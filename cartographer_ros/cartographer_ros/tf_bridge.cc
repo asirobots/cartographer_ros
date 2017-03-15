@@ -33,12 +33,12 @@ std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(
   ::ros::Duration timeout(lookup_transform_timeout_sec_);
   std::unique_ptr<::cartographer::transform::Rigid3d> frame_id_to_tracking;
   try {
-    const ::ros::Time latest_tf_time =
+    const ::builtin_interfaces::msg::Time latest_tf_time =
         buffer_
-            ->lookupTransform(tracking_frame_, frame_id, ::ros::Time(0.),
+            ->lookupTransform(tracking_frame_, frame_id, ::builtin_interfaces::msg::Time(0.),
                               timeout)
             .header.stamp;
-    const ::ros::Time requested_time = ToRos(time);
+    const ::builtin_interfaces::msg::Time requested_time = ToRos(time);
     if (latest_tf_time >= requested_time) {
       // We already have newer data, so we do not wait. Otherwise, we would wait
       // for the full 'timeout' even if we ask for data that is too old.

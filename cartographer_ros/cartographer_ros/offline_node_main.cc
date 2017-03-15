@@ -176,7 +176,7 @@ void Run(const std::vector<string>& bag_filenames) {
     rosbag::Bag bag;
     bag.open(bag_filename, rosbag::bagmode::Read);
     rosbag::View view(bag);
-    const ::ros::Time begin_time = view.getBeginTime();
+    const ::builtin_interfaces::msg::Time begin_time = view.getBeginTime();
     const double duration_in_seconds = (view.getEndTime() - begin_time).toSec();
 
     for (const rosbag::MessageInstance& msg : view) {

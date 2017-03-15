@@ -17,24 +17,23 @@
 #include "cartographer_ros/time_conversion.h"
 
 #include "cartographer/common/time.h"
-#include "ros/ros.h"
 
 namespace cartographer_ros {
 
-::ros::Time ToRos(::cartographer::common::Time time) {
+::builtin_interfaces::msg::Time ToRos(::cartographer::common::Time time) {
   int64 uts_timestamp = ::cartographer::common::ToUniversal(time);
   int64 ns_since_unix_epoch =
       (uts_timestamp -
        ::cartographer::common::kUtsEpochOffsetFromUnixEpochInSeconds *
            10000000ll) *
       100ll;
-  ::ros::Time ros_time;
+  ::builtin_interfaces::msg::Time ros_time;
   ros_time.fromNSec(ns_since_unix_epoch);
   return ros_time;
 }
 
 // TODO(pedrofernandez): Write test.
-::cartographer::common::Time FromRos(const ::ros::Time& time) {
+::cartographer::common::Time FromRos(const ::builtin_interfaces::msg::Time& time) {
   // The epoch of the ICU Universal Time Scale is "0001-01-01 00:00:00.0 +0000",
   // exactly 719162 days before the Unix epoch.
   return ::cartographer::common::FromUniversal(

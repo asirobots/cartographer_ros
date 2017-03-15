@@ -88,7 +88,7 @@ bool MapBuilderBridge::HandleSubmapQuery(
 
 cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList() {
   cartographer_ros_msgs::SubmapList submap_list;
-  submap_list.header.stamp = ::ros::Time::now();
+  submap_list.header.stamp = ::builtin_interfaces::msg::Time::now();
   submap_list.header.frame_id = options_.map_frame;
   for (int trajectory_id = 0;
        trajectory_id < map_builder_.num_trajectory_builders();

@@ -21,14 +21,14 @@
 
 #include "cartographer/mapping/trajectory_node.h"
 #include "cartographer_ros/node_options.h"
-#include "nav_msgs/OccupancyGrid.h"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 
 namespace cartographer_ros {
 
 void BuildOccupancyGrid(
     const std::vector<::cartographer::mapping::TrajectoryNode>&
         trajectory_nodes,
-    const NodeOptions& options, ::nav_msgs::OccupancyGrid* occupancy_grid);
+    const NodeOptions& options, ::nav_msgs::msg::OccupancyGrid* occupancy_grid);
 
 }  // namespace cartographer_ros
 

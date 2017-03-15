@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "cartographer_ros/msg_conversion.h"
-#include "urdf/model.h"
+#include "urdf_model/model.h"
 
 namespace cartographer_ros {
 

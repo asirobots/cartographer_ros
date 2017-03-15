@@ -23,13 +23,14 @@
 #include "cartographer/common/mutex.h"
 #include "cartographer_ros/map_builder_bridge.h"
 #include "cartographer_ros/node_options.h"
-#include "cartographer_ros_msgs/FinishTrajectory.h"
-#include "cartographer_ros_msgs/SubmapEntry.h"
-#include "cartographer_ros_msgs/SubmapList.h"
-#include "cartographer_ros_msgs/SubmapQuery.h"
-#include "cartographer_ros_msgs/TrajectorySubmapList.h"
-#include "ros/ros.h"
+#include "cartographer_ros_msgs/srv/finish_trajectory.h"
+#include "cartographer_ros_msgs/msg/submap_entry.h"
+#include "cartographer_ros_msgs/msg/submap_list.h"
+#include "cartographer_ros_msgs/srv/submap_query.h"
+#include "cartographer_ros_msgs/msg/trajectory_submap_list.h"
+//#include "ros/ros.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include <rclcpp/rclcpp.hpp>
 
 namespace cartographer_ros {
 
@@ -56,16 +57,16 @@ class Node {
 
   void Initialize();
 
-  ::ros::NodeHandle* node_handle();
+  rclcpp::node::Node::SharedPtr node_handle();
   MapBuilderBridge* map_builder_bridge();
 
  private:
-  bool HandleSubmapQuery(
-      cartographer_ros_msgs::SubmapQuery::Request& request,
-      cartographer_ros_msgs::SubmapQuery::Response& response);
+  //void HandleSubmapQuery(const std::shared_ptr<rmw_request_id_t> request_header,
+  //                       const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
+  //                       std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response);
 
-  void PublishSubmapList(const ::ros::WallTimerEvent& timer_event);
-  void PublishTrajectoryStates(const ::ros::WallTimerEvent& timer_event);
+  void PublishSubmapList();
+  void PublishTrajectoryStates();
   void SpinOccupancyGridThreadForever();
 
   const NodeOptions options_;
@@ -77,20 +78,20 @@ class Node {
   int trajectory_id_ = -1;
   std::unordered_set<string> expected_sensor_ids_;
 
-  ::ros::NodeHandle node_handle_;
-  ::ros::Publisher submap_list_publisher_;
-  ::ros::ServiceServer submap_query_server_;
-  ::ros::Publisher scan_matched_point_cloud_publisher_;
+  ::rclcpp::node::Node::SharedPtr node_handle_;
+  ::rclcpp::publisher::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
+  ::rclcpp::service::Service<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_query_server_;
+  ::rclcpp::publisher::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr scan_matched_point_cloud_publisher_;
   cartographer::common::Time last_scan_matched_point_cloud_time_ =
       cartographer::common::Time::min();
 
-  ::ros::Publisher occupancy_grid_publisher_;
+  ::rclcpp::publisher::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
   std::thread occupancy_grid_thread_;
   bool terminating_ = false GUARDED_BY(mutex_);
 
   // We have to keep the timer handles of ::ros::WallTimers around, otherwise
   // they do not fire.
-  std::vector<::ros::WallTimer> wall_timers_;
+  std::vector<::rclcpp::timer::TimerBase::SharedPtr> wall_timers_;
 };
 
 }  // namespace cartographer_ros

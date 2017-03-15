@@ -26,7 +26,7 @@
 #include "cartographer/mapping_2d/proto/laser_fan_inserter_options.pb.h"
 #include "cartographer_ros/map_writer.h"
 #include "cartographer_ros/occupancy_grid.h"
-#include "nav_msgs/OccupancyGrid.h"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 
 namespace cartographer_ros {
 
@@ -38,7 +38,7 @@ namespace carto = ::cartographer;
 void Write2DAssets(const std::vector<::cartographer::mapping::TrajectoryNode>&
                        trajectory_nodes,
                    const NodeOptions& options, const std::string& stem) {
-  ::nav_msgs::OccupancyGrid occupancy_grid;
+  ::nav_msgs::msg::OccupancyGrid occupancy_grid;
   BuildOccupancyGrid(trajectory_nodes, options, &occupancy_grid);
   WriteOccupancyGridToPgmAndYaml(occupancy_grid, stem);
 }

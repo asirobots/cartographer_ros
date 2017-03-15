@@ -67,10 +67,19 @@ namespace {
 
 namespace carto = ::cartographer;
 
+template<typename T>
+void fromROSMsg(const sensor_msgs::PointCloud2 &cloud, pcl::PointCloud<T> &pcl_cloud)
+{
+  pcl::PCLPointCloud2 pcl_pc2;
+  pcl_conversions::toPCL(cloud, pcl_pc2);
+  pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
+}
+
 carto::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
     const sensor_msgs::PointCloud2::ConstPtr& message) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
-  pcl::fromROSMsg(*message, pcl_point_cloud);
+  fromROSMsg(*message, pcl_point_cloud);
+  //pcl::fromROSMsg(*message, pcl_point_cloud);
   carto::sensor::PointCloudWithIntensities point_cloud;
 
   // TODO(hrapp): How to get reflectivities from PCL?
@@ -175,7 +184,7 @@ void Run(const string& trajectory_filename, const string& bag_filename,
     rosbag::Bag bag;
     bag.open(bag_filename, rosbag::bagmode::Read);
     rosbag::View view(bag);
-    const ::ros::Time begin_time = view.getBeginTime();
+    const ::builtin_interfaces::msg::Time begin_time = view.getBeginTime();
     const double duration_in_seconds = (view.getEndTime() - begin_time).toSec();
 
     for (const rosbag::MessageInstance& message : view) {
