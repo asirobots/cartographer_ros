@@ -150,15 +150,15 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::PointCloud& point_cloud) {
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
-#if 0
-  ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
+
+  int offset = 0;
   for (const auto& point : point_cloud) {
-    stream.next(point.x());
-    stream.next(point.y());
-    stream.next(point.z());
-    stream.next(kPointCloudComponentFourMagic);
+    msg.data[offset++] = point.x();
+    msg.data[offset++] = point.y();
+    msg.data[offset++] = point.z();
+    msg.data[offset++] = kPointCloudComponentFourMagic;
   }
-#endif
+
   return msg;
 }
 
@@ -174,15 +174,15 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   const auto num_points = point_cloud.x_size();
 
   auto msg = PreparePointCloud2Message(timestamp, frame_id, num_points);
-#if 0
-  ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
+
+  int offset = 0;
   for (int i = 0; i < num_points; ++i) {
-    stream.next(point_cloud.x(i));
-    stream.next(point_cloud.y(i));
-    stream.next(point_cloud.z(i));
-    stream.next(kPointCloudComponentFourMagic);
+    msg.data[offset++] = point_cloud.x(i);
+    msg.data[offset++] = point_cloud.y(i);
+    msg.data[offset++] = point_cloud.z(i);
+    msg.data[offset++] = kPointCloudComponentFourMagic;
   }
-#endif
+
   return msg;
 }
 
