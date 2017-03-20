@@ -52,6 +52,7 @@ constexpr int kLatestOnlyPublisherQueueSize = 1;
 Node::Node(const NodeOptions& options, tf2_ros::Buffer* const tf_buffer)
     : options_(options), map_builder_bridge_(options_, tf_buffer) {
   node_handle_ = rclcpp::Node::make_shared("cartographer_node");
+  tf_broadcaster_ = new tf2_ros::TransformBroadcaster(node_handle_);
 }
 
 Node::~Node() {
@@ -62,6 +63,8 @@ Node::~Node() {
   if (occupancy_grid_thread_.joinable()) {
     occupancy_grid_thread_.join();
   }
+
+  delete tf_broadcaster_;
 }
 
 void Node::Initialize() {
@@ -150,13 +153,13 @@ void Node::PublishTrajectoryStates() {
             tracking_to_local * (*trajectory_state.published_to_tracking));
         stamped_transforms.push_back(stamped_transform);
 
-        tf_broadcaster_.sendTransform(stamped_transforms);
+        tf_broadcaster_->sendTransform(stamped_transforms);
       } else {
         stamped_transform.header.frame_id = options_.map_frame;
         stamped_transform.child_frame_id = options_.published_frame;
         stamped_transform.transform = ToGeometryMsgTransform(
             tracking_to_map * (*trajectory_state.published_to_tracking));
-        tf_broadcaster_.sendTransform(stamped_transform);
+        tf_broadcaster_->sendTransform(stamped_transform);
       }
     }
   }

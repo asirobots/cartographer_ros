@@ -19,7 +19,7 @@ project(cartographer_ros)
 find_package(ament_cmake REQUIRED)
 
 if(NOT WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -ggdb3")
 endif()
 
 find_package(rclcpp REQUIRED)
@@ -53,18 +53,19 @@ if(DEFINED urdfdom_headers_VERSION)
 endif()
 
 include_directories(
-  ${urdfdom_headers_INCLUDE_DIRS}
+  include
+  "."
+  ${tf2_INCLUDE_DIRS}
+  ${tf2_ros_INCLUDE_DIRS}
+  ${tf2_eigen_INCLUDE_DIRS}
 )
 
-include_directories(include)
-include_directories(".")
-
-file(GLOB_RECURSE ALL_SRCS "*.cc" "*.h")
-file(GLOB_RECURSE ALL_TESTS "*_test.cc")
-file(GLOB_RECURSE ALL_EXECUTABLES "*_main.cc")
-list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
-list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
-MESSAGE("CHRIS: ${ALL_SRCS}")
+#file(GLOB_RECURSE ALL_SRCS "*.cc" "*.h")
+#file(GLOB_RECURSE ALL_TESTS "*_test.cc")
+#file(GLOB_RECURSE ALL_EXECUTABLES "*_main.cc")
+#list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
+#list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
+#MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
   "cartographer_ros/assets_writer.cc"
   "cartographer_ros/map_builder_bridge.cc"
@@ -80,17 +81,12 @@ set(ALL_SRCS
   )
 add_library(${PROJECT_NAME} ${ALL_SRCS})
 
+# Cartographer
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
 
 # Eigen
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   "${EIGEN3_INCLUDE_DIR}")
-
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  "${tf2_ros_INCLUDE_DIRS}")
-
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  "${tf2_eigen_INCLUDE_DIRS}")
 
 # Lua
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
@@ -106,6 +102,7 @@ endforeach()
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${YAMLCPP_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${YAMLCPP_LIBRARIES})
 
+# URDFDOM
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLUDE_DIRS})
 
 add_subdirectory("cartographer_ros")
