@@ -24,6 +24,8 @@ endif()
 
 find_package(rclcpp REQUIRED)
 find_package(cartographer_ros_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 include(FindPkgConfig)
 pkg_search_module(YAMLCPP REQUIRED yaml-cpp>=0.5.1)
@@ -37,8 +39,11 @@ find_package(LuaGoogle REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
+find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(tf2_msgs REQUIRED)
+find_package(console_bridge REQUIRED)
 
 find_package(urdfdom_headers REQUIRED)
 if(DEFINED urdfdom_headers_VERSION)
@@ -61,10 +66,14 @@ list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
 list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
 MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
+  "cartographer_ros/assets_writer.cc"
   "cartographer_ros/map_builder_bridge.cc"
+  "cartographer_ros/map_writer.cc"
   "cartographer_ros/msg_conversion.cc"
+  "cartographer_ros/occupancy_grid.cc"
   "cartographer_ros/node.cc"
   "cartographer_ros/node_options.cc"
+  "cartographer_ros/ros_log_sink.cc"
   "cartographer_ros/sensor_bridge.cc"
   "cartographer_ros/tf_bridge.cc"
   "cartographer_ros/time_conversion.cc"
@@ -92,6 +101,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${PCL_LIBRARIES})
 foreach(DEFINITION ${PCL_DEFINITIONS})
   set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${DEFINITION}")
 endforeach()
+
+# YAML
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${YAMLCPP_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${YAMLCPP_LIBRARIES})
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLUDE_DIRS})
 
