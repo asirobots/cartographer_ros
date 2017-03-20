@@ -116,6 +116,10 @@ install(TARGETS
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
+install(DIRECTORY configuration_files
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/
+)
+
 ament_package()
 
 # cmake_minimum_required(VERSION 2.8.12)  # Ships with Ubuntu 14.04 (Trusty)
