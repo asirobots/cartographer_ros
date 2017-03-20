@@ -150,6 +150,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::PointCloud& point_cloud) {
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
+#if 0
   ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
   for (const auto& point : point_cloud) {
     stream.next(point.x());
@@ -157,6 +158,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     stream.next(point.z());
     stream.next(kPointCloudComponentFourMagic);
   }
+#endif
   return msg;
 }
 
@@ -172,6 +174,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   const auto num_points = point_cloud.x_size();
 
   auto msg = PreparePointCloud2Message(timestamp, frame_id, num_points);
+#if 0
   ::ros::serialization::OStream stream(msg.data.data(), msg.data.size());
   for (int i = 0; i < num_points; ++i) {
     stream.next(point_cloud.x(i));
@@ -179,6 +182,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     stream.next(point_cloud.z(i));
     stream.next(kPointCloudComponentFourMagic);
   }
+#endif
   return msg;
 }
 
