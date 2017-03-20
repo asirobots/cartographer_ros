@@ -70,7 +70,7 @@ void Run() {
   if (options.use_laser_scan) {
     laser_scan_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::LaserScan>(
                                                                                                  kLaserScanTopic,
-                                                                                                 [&](sensor_msgs::msg::LaserScan::ConstPtr msg) {
+                                                                                                 [&](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
                                                                                                    node.map_builder_bridge()
                                                                                                    ->sensor_bridge(trajectory_id)
                                                                                                    ->HandleLaserScanMessage(kLaserScanTopic, msg);
@@ -82,7 +82,7 @@ void Run() {
   if (options.use_multi_echo_laser_scan) {
     multi_echo_laser_scan_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::MultiEchoLaserScan>(
                                                                                                  kMultiEchoLaserScanTopic,
-                                                                                                 [&](sensor_msgs::msg::MultiEchoLaserScan::ConstPtr msg) {
+                                                                                                 [&](sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
                                                                                                    node.map_builder_bridge()
                                                                                                    ->sensor_bridge(trajectory_id)
                                                                                                    ->HandleMultiEchoLaserScanMessage(kMultiEchoLaserScanTopic, msg);
@@ -101,8 +101,8 @@ void Run() {
       }
       point_cloud_subscribers.push_back(node.node_handle()->subscribe(
           topic, kInfiniteSubscriberQueueSize,
-          boost::function<void(const sensor_msgs::PointCloud2::ConstPtr&)>(
-              [&, topic](const sensor_msgs::PointCloud2::ConstPtr& msg) {
+          boost::function<void(const sensor_msgs::PointCloud2::ConstSharedPtr&)>(
+              [&, topic](const sensor_msgs::PointCloud2::ConstSharedPtr& msg) {
                 node.map_builder_bridge()
                     ->sensor_bridge(trajectory_id)
                     ->HandlePointCloud2Message(topic, msg);
@@ -121,7 +121,7 @@ void Run() {
            .use_imu_data())) {
     imu_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::Imu>(
                   kImuTopic,
-                  [&](sensor_msgs::msg::Imu::ConstPtr msg) {
+                  [&](sensor_msgs::msg::Imu::ConstSharedPtr msg) {
                         node.map_builder_bridge()
                         ->sensor_bridge(trajectory_id)
                         ->HandleImuMessage(kImuTopic, msg);
@@ -134,7 +134,7 @@ void Run() {
   if (options.use_odometry) {
     odometry_subscriber = node.node_handle()->create_subscription<nav_msgs::msg::Odometry>(
         kOdometryTopic,
-        [&](nav_msgs::msg::Odometry::ConstPtr msg) {
+        [&](nav_msgs::msg::Odometry::ConstSharedPtr msg) {
               node.map_builder_bridge()
                   ->sensor_bridge(trajectory_id)
                   ->HandleOdometryMessage(kOdometryTopic, msg);

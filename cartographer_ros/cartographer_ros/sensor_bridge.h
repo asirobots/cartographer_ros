@@ -43,16 +43,16 @@ class SensorBridge {
   SensorBridge& operator=(const SensorBridge&) = delete;
 
   void HandleOdometryMessage(const string& sensor_id,
-                             const nav_msgs::msg::Odometry::ConstPtr& msg);
+                             const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
   void HandleImuMessage(const string& sensor_id,
-                        const sensor_msgs::msg::Imu::ConstPtr& msg);
+                        const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
   void HandleLaserScanMessage(const string& sensor_id,
-                              const sensor_msgs::msg::LaserScan::ConstPtr& msg);
+                              const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
   void HandleMultiEchoLaserScanMessage(
       const string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstPtr& msg);
+      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
   void HandlePointCloud2Message(const string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstPtr& msg);
+                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 
   const TfBridge& tf_bridge() const;
 

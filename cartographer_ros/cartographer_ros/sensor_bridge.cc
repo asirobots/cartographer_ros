@@ -45,7 +45,7 @@ SensorBridge::SensorBridge(
       trajectory_builder_(trajectory_builder) {}
 
 void SensorBridge::HandleOdometryMessage(
-                                         const string& sensor_id, const nav_msgs::msg::Odometry::ConstPtr& msg) {
+                                         const string& sensor_id, const nav_msgs::msg::Odometry::ConstSharedPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->child_frame_id));
@@ -57,7 +57,7 @@ void SensorBridge::HandleOdometryMessage(
 }
 
 void SensorBridge::HandleImuMessage(const string& sensor_id,
-                                    const sensor_msgs::msg::Imu::ConstPtr& msg) {
+                                    const sensor_msgs::msg::Imu::ConstSharedPtr& msg) {
   CHECK_NE(msg->linear_acceleration_covariance[0], -1);
   CHECK_NE(msg->angular_velocity_covariance[0], -1);
   const carto::common::Time time = FromRos(msg->header.stamp);
@@ -76,14 +76,14 @@ void SensorBridge::HandleImuMessage(const string& sensor_id,
 }
 
 void SensorBridge::HandleLaserScanMessage(
-                                          const string& sensor_id, const sensor_msgs::msg::LaserScan::ConstPtr& msg) {
+                                          const string& sensor_id, const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg) {
   HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
 
 void SensorBridge::HandleMultiEchoLaserScanMessage(
     const string& sensor_id,
-    const sensor_msgs::msg::MultiEchoLaserScan::ConstPtr& msg) {
+    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg) {
   HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
@@ -99,7 +99,7 @@ void fromROSMsg(const sensor_msgs::msg::PointCloud2 &cloud, pcl::PointCloud<T> &
 #endif
 
 void SensorBridge::HandlePointCloud2Message(
-                                            const string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstPtr& msg) {
+                                            const string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
   //pcl::fromROSMsg(*msg, pcl_point_cloud);
   //fromROSMsg(*msg, pcl_point_cloud);
