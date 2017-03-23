@@ -22,7 +22,7 @@
 #include "cartographer/transform/transform.h"
 #include "cartographer_ros/tf_bridge.h"
 #include "geometry_msgs/msg/transform.hpp"
-#include "nav_msgs/msg/occupancy_grid.h"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"

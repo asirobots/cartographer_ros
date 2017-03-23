@@ -37,9 +37,9 @@
 #include "glog/logging.h"
 #include "nav_msgs/msg/odometry.hpp"
 //#include "ros/serialization.h"
-#include "sensor_msgs/msg/point_cloud2.h"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "tf2_eigen/tf2_eigen.h"
+//#include "tf2_eigen/tf2_eigen.h"
 
 namespace cartographer_ros {
 
@@ -52,7 +52,7 @@ constexpr int kLatestOnlyPublisherQueueSize = 1;
 Node::Node(const NodeOptions& options, tf2_ros::Buffer* const tf_buffer)
     : options_(options), map_builder_bridge_(options_, tf_buffer) {
   node_handle_ = rclcpp::Node::make_shared("cartographer_node");
-  tf_broadcaster_ = new tf2_ros::TransformBroadcaster(node_handle_);
+  tf_broadcaster_ = new tf2_ros::TransformBroadcaster();
 }
 
 Node::~Node() {

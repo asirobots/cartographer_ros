@@ -152,11 +152,12 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
 
   int offset = 0;
+  float* data = reinterpret_cast<float*>(&msg.data[0]);
   for (const auto& point : point_cloud) {
-    msg.data[offset++] = point.x();
-    msg.data[offset++] = point.y();
-    msg.data[offset++] = point.z();
-    msg.data[offset++] = kPointCloudComponentFourMagic;
+    data[offset++] = point.x();
+    data[offset++] = point.y();
+    data[offset++] = point.z();
+    data[offset++] = kPointCloudComponentFourMagic;
   }
 
   return msg;
