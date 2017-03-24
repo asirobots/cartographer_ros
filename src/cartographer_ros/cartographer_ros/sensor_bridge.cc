@@ -88,27 +88,64 @@ void SensorBridge::HandleMultiEchoLaserScanMessage(
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
 
-#if 0
-template<typename T>
-void fromROSMsg(const sensor_msgs::msg::PointCloud2 &cloud, pcl::PointCloud<T> &pcl_cloud)
-{
-  pcl::PCLPointCloud2 pcl_pc2;
-  pcl_conversions::toPCL(cloud, pcl_pc2);
-  pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
+#define I_AM_LITTLE (((union { unsigned x; unsigned char c; }){1}).c)
+
+std::function<float(std::size_t)> GenerateAccessorFunction(const sensor_msgs::msg::PointCloud2::SharedPtr& msg, std::string name){
+  auto fieldIter = std::find_if(msg->fields.begin(), msg->fields.end(), [name](const sensor_msgs::msg::PointField& f){ return f.name == name; });
+  if (fieldIter == msg->fields.end())
+    return [](std::size_t){ return 0; }; // write zeros if we don't have that field
+  auto field = *fieldIter;
+
+  // shouldn't need to use msg->is_dense because we aren't iterating on width & height
+
+  if ((I_AM_LITTLE && msg->is_bigendian) || (!I_AM_LITTLE && !msg->is_bigendian))
+    throw "Not implemented!"; // not sure what the right-cross platform call is to reverse bytes
+
+  switch (field.datatype){
+    case sensor_msgs::msg::PointField::INT8:
+      return [msg, field](std::size_t t){ return static_cast<float>(*reinterpret_cast<int8_t*>(&msg->data[t + field.offset])); };
+    case sensor_msgs::msg::PointField::UINT8:
+      return [msg, field](std::size_t t){ return static_cast<float>(msg->data[t + field.offset]); };
+    case sensor_msgs::msg::PointField::INT16:
+      return [msg, field](std::size_t t){ return static_cast<float>(*reinterpret_cast<int16_t*>(&msg->data[t + field.offset])); };
+    case sensor_msgs::msg::PointField::UINT16:
+      return [msg, field](std::size_t t){ return static_cast<float>(*reinterpret_cast<uint16_t*>(&msg->data[t + field.offset])); };
+    case sensor_msgs::msg::PointField::INT32:
+      return [msg, field](std::size_t t){ return static_cast<float>(*reinterpret_cast<int32_t*>(&msg->data[t + field.offset])); };
+    case sensor_msgs::msg::PointField::UINT32:
+      return [msg, field](std::size_t t){ return static_cast<float>(*reinterpret_cast<uint32_t*>(&msg->data[t + field.offset])); };
+    case sensor_msgs::msg::PointField::FLOAT32:
+      return [msg, field](std::size_t t){ return *reinterpret_cast<float*>(&msg->data[t + field.offset]); };
+    case sensor_msgs::msg::PointField::FLOAT64:
+      return [msg, field](std::size_t t){ return static_cast<float>(*reinterpret_cast<double*>(&msg->data[t + field.offset])); };
+  }
+
+  throw "Not implemented!";
 }
-#endif
+carto::sensor::PointCloud RosPointCloudToCarto(const sensor_msgs::msg::PointCloud2::SharedPtr& msg) {
+
+  auto x_accessor = GenerateAccessorFunction(msg, "x");
+  auto y_accessor = GenerateAccessorFunction(msg, "y");
+  auto z_accessor = GenerateAccessorFunction(msg, "z");
+
+  carto::sensor::PointCloud point_cloud;
+  // TODO: reserve the right amount of space
+
+  for(std::size_t p = 0; p < msg->data.size(); p += msg->point_step) {
+    auto x = x_accessor(p);
+    auto y = y_accessor(p);
+    auto z = z_accessor(p);
+
+    point_cloud.emplace_back(x, y, z);
+  }
+  return point_cloud; // should do a move
+}
 
 void SensorBridge::HandlePointCloud2Message(
-                                            const string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
-  pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
-  //pcl::fromROSMsg(*msg, pcl_point_cloud);
-  //fromROSMsg(*msg, pcl_point_cloud);
-  carto::sensor::PointCloud point_cloud;
-  for (const auto& point : pcl_point_cloud) {
-    point_cloud.emplace_back(point.x, point.y, point.z);
-  }
-  HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
-                    point_cloud);
+  const string& sensor_id, const sensor_msgs::msg::PointCloud2::SharedPtr& msg) {
+
+  auto point_cloud = RosPointCloudToCarto(msg);
+  HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id, point_cloud);
 }
 
 const TfBridge& SensorBridge::tf_bridge() const { return tf_bridge_; }

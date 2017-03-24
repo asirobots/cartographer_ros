@@ -52,7 +52,7 @@ class SensorBridge {
       const string& sensor_id,
       const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
   void HandlePointCloud2Message(const string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
+                                const sensor_msgs::msg::PointCloud2::SharedPtr& msg);
 
   const TfBridge& tf_bridge() const;
 

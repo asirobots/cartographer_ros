@@ -97,7 +97,7 @@ void Run() {
       }
       point_cloud_subscribers.push_back(node.node_handle()->create_subscription<sensor_msgs::msg::PointCloud2>(
           topic,
-              [&, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
+              [&, topic](sensor_msgs::msg::PointCloud2::SharedPtr msg) {
                 node.map_builder_bridge()
                     ->sensor_bridge(trajectory_id)
                     ->HandlePointCloud2Message(topic, msg);
