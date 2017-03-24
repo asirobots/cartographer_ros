@@ -67,8 +67,7 @@ class Node {
 
   const NodeOptions options_;
 
-  tf2_ros::TransformBroadcaster* tf_broadcaster_;
-  //std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   cartographer::common::Mutex mutex_;
   MapBuilderBridge map_builder_bridge_ GUARDED_BY(mutex_);
