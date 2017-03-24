@@ -39,8 +39,6 @@ DEFINE_string(configuration_basename, "",
 namespace cartographer_ros {
 namespace {
 
-constexpr int kInfiniteSubscriberQueueSize = 0;
-
 NodeOptions LoadOptions() {
   auto file_resolver = cartographer::common::make_unique<
       cartographer::common::ConfigurationFileResolver>(
@@ -156,7 +154,6 @@ void Run() {
                                                                                                                   node.map_builder_bridge()->WriteAssets(request->stem);});
 
   rclcpp::spin(node.node_handle());
-  //::ros::spin();
 
   node.map_builder_bridge()->FinishTrajectory(trajectory_id);
 }

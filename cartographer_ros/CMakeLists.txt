@@ -60,12 +60,6 @@ include_directories(
   ${tf2_eigen_INCLUDE_DIRS}
 )
 
-#file(GLOB_RECURSE ALL_SRCS "*.cc" "*.h")
-#file(GLOB_RECURSE ALL_TESTS "*_test.cc")
-#file(GLOB_RECURSE ALL_EXECUTABLES "*_main.cc")
-#list(REMOVE_ITEM ALL_SRCS ${ALL_TESTS})
-#list(REMOVE_ITEM ALL_SRCS ${ALL_EXECUTABLES})
-#MESSAGE("CHRIS: ${ALL_SRCS}")
 set(ALL_SRCS
   "cartographer_ros/assets_writer.cc"
   "cartographer_ros/map_builder_bridge.cc"
