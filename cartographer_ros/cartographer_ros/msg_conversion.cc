@@ -150,7 +150,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
 
   size_t offset = 0;
-  float* data = reinterpret_cast<float*>(msg.data.data());
+  float * const data = reinterpret_cast<float*>(&msg.data[0]);
   for (const auto& point : point_cloud) {
     data[offset++] = point.x();
     data[offset++] = point.y();
@@ -175,7 +175,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   auto msg = PreparePointCloud2Message(timestamp, frame_id, num_points);
 
   size_t offset = 0;
-  float* data = reinterpret_cast<float*>(msg.data.data());
+  float * const data = reinterpret_cast<float*>(&msg.data[0]);
   for (int i = 0; i < num_points; ++i) {
     data[offset++] = point_cloud.x(i);
     data[offset++] = point_cloud.y(i);
