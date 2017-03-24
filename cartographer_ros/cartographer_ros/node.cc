@@ -68,13 +68,13 @@ void Node::Initialize() {
   carto::common::MutexLocker lock(&mutex_);
   submap_list_publisher_ = node_handle_->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(kSubmapListTopic, rmw_qos_profile_default);
   submap_query_server_ = node_handle_->create_service<::cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName,
-                                                                                                 [this] (
-                                                                                                    const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
-                                                                                                    std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response)
-                                                                                                 {
-                                                                                                   carto::common::MutexLocker lock(&mutex_);
-                                                                                                   map_builder_bridge_.HandleSubmapQuery(request, response);
-                                                                                                 });
+        [this] (
+                const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
+                std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response)
+        {
+          carto::common::MutexLocker lock(&mutex_);
+          map_builder_bridge_.HandleSubmapQuery(request, response);
+        });
 
   if (options_.map_builder_options.use_trajectory_builder_2d()) {
     occupancy_grid_publisher_ =

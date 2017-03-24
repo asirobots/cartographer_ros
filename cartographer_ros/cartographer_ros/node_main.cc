@@ -143,15 +143,15 @@ void Run() {
   ::rclcpp::service::Service<::cartographer_ros_msgs::srv::FinishTrajectory>::SharedPtr finish_trajectory_server;
 
   finish_trajectory_server = node.node_handle()->create_service<::cartographer_ros_msgs::srv::FinishTrajectory>(kFinishTrajectoryServiceName,
-                                                                                                                [&] (
-                                                                                                                    const std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Request> request,
-                                                                                                                    std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Response> response)
-                                                                                                                {
-                                                                                                                  const int previous_trajectory_id = trajectory_id;
-                                                                                                                  trajectory_id = node.map_builder_bridge()->AddTrajectory(
-                                                                                                                                                                           expected_sensor_ids, options.tracking_frame);
-                                                                                                                  node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
-                                                                                                                  node.map_builder_bridge()->WriteAssets(request->stem);});
+        [&] (
+             const std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Request> request,
+             std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Response> response)
+        {
+          const int previous_trajectory_id = trajectory_id;
+          trajectory_id = node.map_builder_bridge()->AddTrajectory(
+                                                                   expected_sensor_ids, options.tracking_frame);
+          node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
+          node.map_builder_bridge()->WriteAssets(request->stem);});
 
   rclcpp::spin(node.node_handle());
 
