@@ -52,7 +52,7 @@ constexpr int kLatestOnlyPublisherQueueSize = 1;
 Node::Node(const NodeOptions& options, tf2_ros::Buffer* const tf_buffer)
     : options_(options), map_builder_bridge_(options_, tf_buffer) {
   node_handle_ = rclcpp::Node::make_shared("cartographer_node");
-  tf_broadcaster_ = new tf2_ros::TransformBroadcaster();
+  tf_broadcaster_ = new tf2_ros::TransformBroadcaster(node_handle_);
 }
 
 Node::~Node() {
