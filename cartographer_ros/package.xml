@@ -32,24 +32,25 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <build_depend>rclcpp</build_depend>
   <build_depend>cartographer_ros_msgs</build_depend>
-  <build_depend>sensor_msgs</build_depend>
+  <build_depend>console_bridge</build_depend>
   <build_depend>nav_msgs</build_depend>
+  <build_depend>rclcpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
   <build_depend>tf2</build_depend>
   <build_depend>tf2_ros</build_depend>
   <build_depend>tf2_eigen</build_depend>
   <build_depend>tf2_msgs</build_depend>
-  <build_depend>console_bridge</build_depend>
 
-  <exec_depend>rclcpp</exec_depend>
   <exec_depend>cartographer_ros_msgs</exec_depend>
+  <exec_depend>console_bridge</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>tf2</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_eigen</exec_depend>
   <exec_depend>tf2_msgs</exec_depend>
-  <exec_depend>console_bridge</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
