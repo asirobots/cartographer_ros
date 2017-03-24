@@ -90,27 +90,24 @@ void Run() {
     expected_sensor_ids.insert(kMultiEchoLaserScanTopic);
   }
 
-#if 0
   // For 3D SLAM, subscribe to all point clouds topics.
-  std::vector<::ros::Subscriber> point_cloud_subscribers;
+  std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> point_cloud_subscribers;
   if (options.num_point_clouds > 0) {
     for (int i = 0; i < options.num_point_clouds; ++i) {
       string topic = kPointCloud2Topic;
       if (options.num_point_clouds > 1) {
         topic += "_" + std::to_string(i + 1);
       }
-      point_cloud_subscribers.push_back(node.node_handle()->subscribe(
-          topic, kInfiniteSubscriberQueueSize,
-          boost::function<void(const sensor_msgs::PointCloud2::ConstSharedPtr&)>(
-              [&, topic](const sensor_msgs::PointCloud2::ConstSharedPtr& msg) {
+      point_cloud_subscribers.push_back(node.node_handle()->create_subscription<sensor_msgs::msg::PointCloud2>(
+          topic,
+	  [&, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
                 node.map_builder_bridge()
                     ->sensor_bridge(trajectory_id)
                     ->HandlePointCloud2Message(topic, msg);
-              })));
+	  }, rmw_qos_profile_default));
       expected_sensor_ids.insert(topic);
     }
   }
-#endif
 
   // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
   // required.
