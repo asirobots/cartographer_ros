@@ -36,10 +36,9 @@
 #include "cartographer_ros/time_conversion.h"
 #include "glog/logging.h"
 #include "nav_msgs/msg/odometry.hpp"
-//#include "ros/serialization.h"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-//#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_eigen/tf2_eigen.h"
 
 namespace cartographer_ros {
 
@@ -52,7 +51,7 @@ constexpr int kLatestOnlyPublisherQueueSize = 1;
 Node::Node(const NodeOptions& options, tf2_ros::Buffer* const tf_buffer)
     : options_(options), map_builder_bridge_(options_, tf_buffer) {
   node_handle_ = rclcpp::Node::make_shared("cartographer_node");
-  tf_broadcaster_ = new tf2_ros::TransformBroadcaster(node_handle_);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_handle_);
 }
 
 Node::~Node() {
@@ -63,21 +62,19 @@ Node::~Node() {
   if (occupancy_grid_thread_.joinable()) {
     occupancy_grid_thread_.join();
   }
-
-  delete tf_broadcaster_;
 }
 
 void Node::Initialize() {
   carto::common::MutexLocker lock(&mutex_);
   submap_list_publisher_ = node_handle_->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(kSubmapListTopic, rmw_qos_profile_default);
   submap_query_server_ = node_handle_->create_service<::cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName,
-                                                                                                 [this] (
-                                                                                                    const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
-                                                                                                    std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response)
-                                                                                                 {
-                                                                                                   carto::common::MutexLocker lock(&mutex_);
-                                                                                                   map_builder_bridge_.HandleSubmapQuery(request, response);
-                                                                                                 });
+       [this] (
+          const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
+          std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response)
+       {
+         carto::common::MutexLocker lock(&mutex_);
+         map_builder_bridge_.HandleSubmapQuery(request, response);
+       });
 
   if (options_.map_builder_options.use_trajectory_builder_2d()) {
     occupancy_grid_publisher_ =
@@ -130,9 +127,7 @@ void Node::PublishTrajectoryStates() {
       // If we do not publish a new point cloud, we still allow time of the
       // published poses to advance.
       //stamped_transform.header.stamp = builtin_interfaces::msg::Time::now();
-      std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
-      stamped_transform.header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
-      stamped_transform.header.stamp.nanosec = now.count() % 1000000000;
+      stamped_transform.header.stamp = rclcpp::Time::now();
     }
 
     if (trajectory_state.published_to_tracking != nullptr) {

@@ -28,8 +28,6 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
 #include "glog/logging.h"
-//#include "ros/ros.h"
-//#include "ros/serialization.h"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
@@ -152,7 +150,7 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
 
   int offset = 0;
-  float* data = reinterpret_cast<float*>(&msg.data[0]);
+  float * const data = reinterpret_cast<float*>(&msg.data[0]);
   for (const auto& point : point_cloud) {
     data[offset++] = point.x();
     data[offset++] = point.y();
@@ -177,11 +175,12 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   auto msg = PreparePointCloud2Message(timestamp, frame_id, num_points);
 
   int offset = 0;
+  float * const data = reinterpret_cast<float*>(&msg.data[0]);
   for (int i = 0; i < num_points; ++i) {
-    msg.data[offset++] = point_cloud.x(i);
-    msg.data[offset++] = point_cloud.y(i);
-    msg.data[offset++] = point_cloud.z(i);
-    msg.data[offset++] = kPointCloudComponentFourMagic;
+    data[offset++] = point_cloud.x(i);
+    data[offset++] = point_cloud.y(i);
+    data[offset++] = point_cloud.z(i);
+    data[offset++] = kPointCloudComponentFourMagic;
   }
 
   return msg;
@@ -253,7 +252,7 @@ Eigen::Quaterniond ToEigen(const geometry_msgs::msg::Quaternion& quaternion) {
                             quaternion.z);
 }
 
-PoseCovariance ToPoseCovariance(const boost::array<double, 36>& covariance) {
+PoseCovariance ToPoseCovariance(const std::array<double, 36>& covariance) {
   return Eigen::Map<const Eigen::Matrix<double, 6, 6>>(covariance.data());
 }
 

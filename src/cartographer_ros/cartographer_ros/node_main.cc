@@ -39,8 +39,6 @@ DEFINE_string(configuration_basename, "",
 namespace cartographer_ros {
 namespace {
 
-constexpr int kInfiniteSubscriberQueueSize = 0;
-
 NodeOptions LoadOptions() {
   auto file_resolver = cartographer::common::make_unique<
       cartographer::common::ConfigurationFileResolver>(
@@ -55,9 +53,8 @@ NodeOptions LoadOptions() {
 
 void Run() {
   const auto options = LoadOptions();
-  constexpr double kTfBufferCacheTimeInSeconds = 1e6;
-  //tf2_ros::Buffer tf_buffer{::ros::Duration(kTfBufferCacheTimeInSeconds)};
-  tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInSeconds)};
+  constexpr double kTfBufferCacheTimeInNs = 1e15; // originally a million seconds
+  tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
   tf2_ros::TransformListener tf(tf_buffer);
   Node node(options, &tf_buffer);
   node.Initialize();
@@ -90,27 +87,24 @@ void Run() {
     expected_sensor_ids.insert(kMultiEchoLaserScanTopic);
   }
 
-#if 0
   // For 3D SLAM, subscribe to all point clouds topics.
-  std::vector<::ros::Subscriber> point_cloud_subscribers;
+  std::vector<std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>>> point_cloud_subscribers;
   if (options.num_point_clouds > 0) {
     for (int i = 0; i < options.num_point_clouds; ++i) {
       string topic = kPointCloud2Topic;
       if (options.num_point_clouds > 1) {
         topic += "_" + std::to_string(i + 1);
       }
-      point_cloud_subscribers.push_back(node.node_handle()->subscribe(
-          topic, kInfiniteSubscriberQueueSize,
-          boost::function<void(const sensor_msgs::PointCloud2::ConstSharedPtr&)>(
-              [&, topic](const sensor_msgs::PointCloud2::ConstSharedPtr& msg) {
+      point_cloud_subscribers.push_back(node.node_handle()->create_subscription<sensor_msgs::msg::PointCloud2>(
+          topic,
+              [&, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
                 node.map_builder_bridge()
                     ->sensor_bridge(trajectory_id)
                     ->HandlePointCloud2Message(topic, msg);
-              })));
+              }, rmw_qos_profile_default));
       expected_sensor_ids.insert(topic);
     }
   }
-#endif
 
   // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
   // required.
@@ -148,18 +142,18 @@ void Run() {
   ::rclcpp::service::Service<::cartographer_ros_msgs::srv::FinishTrajectory>::SharedPtr finish_trajectory_server;
 
   finish_trajectory_server = node.node_handle()->create_service<::cartographer_ros_msgs::srv::FinishTrajectory>(kFinishTrajectoryServiceName,
-                                                                                                                [&] (
-                                                                                                                    const std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Request> request,
-                                                                                                                    std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Response> response)
-                                                                                                                {
-                                                                                                                  const int previous_trajectory_id = trajectory_id;
-                                                                                                                  trajectory_id = node.map_builder_bridge()->AddTrajectory(
-                                                                                                                                                                           expected_sensor_ids, options.tracking_frame);
-                                                                                                                  node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
-                                                                                                                  node.map_builder_bridge()->WriteAssets(request->stem);});
+        [&] (
+            const std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Request> request,
+            std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Response> response)
+        {
+          const int previous_trajectory_id = trajectory_id;
+          trajectory_id = node.map_builder_bridge()->AddTrajectory(
+                                                                   expected_sensor_ids, options.tracking_frame);
+          node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
+          node.map_builder_bridge()->WriteAssets(request->stem);
+        });
 
   rclcpp::spin(node.node_handle());
-  //::ros::spin();
 
   node.map_builder_bridge()->FinishTrajectory(trajectory_id);
 }
@@ -177,7 +171,7 @@ int main(int argc, char** argv) {
       << "-configuration_basename is missing.";
 
   ::rclcpp::init(argc, argv);
-
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   cartographer_ros::Run();
+  ::rclcpp::shutdown();
 }

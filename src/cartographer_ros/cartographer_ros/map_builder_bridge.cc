@@ -88,10 +88,7 @@ void MapBuilderBridge::HandleSubmapQuery(
 
 cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
   cartographer_ros_msgs::msg::SubmapList submap_list;
-  std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
-  submap_list.header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
-  submap_list.header.stamp.nanosec = now.count() % 1000000000;
-
+  submap_list.header.stamp = rclcpp::Time::now();
   submap_list.header.frame_id = options_.map_frame;
   for (int trajectory_id = 0;
        trajectory_id < map_builder_.num_trajectory_builders();

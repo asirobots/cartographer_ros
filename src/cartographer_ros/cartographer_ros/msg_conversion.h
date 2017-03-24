@@ -17,7 +17,7 @@
 #ifndef CARTOGRAPHER_ROS_GOOGLE_CARTOGRAPHER_SRC_MSG_CONVERSION_H_
 #define CARTOGRAPHER_ROS_GOOGLE_CARTOGRAPHER_SRC_MSG_CONVERSION_H_
 
-#include <boost/array.hpp>
+#include <array>
 
 #include "cartographer/common/port.h"
 #include "cartographer/kalman_filter/pose_tracker.h"
@@ -76,7 +76,7 @@ Eigen::Vector3d ToEigen(const geometry_msgs::msg::Vector3& vector3);
 Eigen::Quaterniond ToEigen(const geometry_msgs::msg::Quaternion& quaternion);
 
 ::cartographer::kalman_filter::PoseCovariance ToPoseCovariance(
-    const boost::array<double, 36>& covariance);
+    const std::array<double, 36>& covariance);
 
 }  // namespace cartographer_ros
 
