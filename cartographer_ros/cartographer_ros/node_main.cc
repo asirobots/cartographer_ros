@@ -146,11 +146,13 @@ void Run() {
              const std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Request> request,
              std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Response> response)
         {
+          (void)response;
           const int previous_trajectory_id = trajectory_id;
           trajectory_id = node.map_builder_bridge()->AddTrajectory(
                                                                    expected_sensor_ids, options.tracking_frame);
           node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
-          node.map_builder_bridge()->WriteAssets(request->stem);});
+          node.map_builder_bridge()->WriteAssets(request->stem);
+        });
 
   rclcpp::spin(node.node_handle());
 
