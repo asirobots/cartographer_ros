@@ -67,19 +67,11 @@ namespace {
 
 namespace carto = ::cartographer;
 
-template<typename T>
-void fromROSMsg(const sensor_msgs::PointCloud2 &cloud, pcl::PointCloud<T> &pcl_cloud)
-{
-  pcl::PCLPointCloud2 pcl_pc2;
-  pcl_conversions::toPCL(cloud, pcl_pc2);
-  pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
-}
-
 carto::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
     const sensor_msgs::PointCloud2::ConstPtr& message) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
   fromROSMsg(*message, pcl_point_cloud);
-  //pcl::fromROSMsg(*message, pcl_point_cloud);
+  pcl::fromROSMsg(*message, pcl_point_cloud);
   carto::sensor::PointCloudWithIntensities point_cloud;
 
   // TODO(hrapp): How to get reflectivities from PCL?
