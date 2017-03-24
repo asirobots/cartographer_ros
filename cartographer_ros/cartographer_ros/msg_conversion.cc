@@ -151,12 +151,13 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     const ::cartographer::sensor::PointCloud& point_cloud) {
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
 
-  int offset = 0;
+  size_t offset = 0;
+  float* data = reinterpret_cast<float*>(msg.data.data());
   for (const auto& point : point_cloud) {
-    msg.data[offset++] = point.x();
-    msg.data[offset++] = point.y();
-    msg.data[offset++] = point.z();
-    msg.data[offset++] = kPointCloudComponentFourMagic;
+    data[offset++] = point.x();
+    data[offset++] = point.y();
+    data[offset++] = point.z();
+    data[offset++] = kPointCloudComponentFourMagic;
   }
 
   return msg;
@@ -175,12 +176,13 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
 
   auto msg = PreparePointCloud2Message(timestamp, frame_id, num_points);
 
-  int offset = 0;
+  size_t offset = 0;
+  float* data = reinterpret_cast<float*>(msg.data.data());
   for (int i = 0; i < num_points; ++i) {
-    msg.data[offset++] = point_cloud.x(i);
-    msg.data[offset++] = point_cloud.y(i);
-    msg.data[offset++] = point_cloud.z(i);
-    msg.data[offset++] = kPointCloudComponentFourMagic;
+    data[offset++] = point_cloud.x(i);
+    data[offset++] = point_cloud.y(i);
+    data[offset++] = point_cloud.z(i);
+    data[offset++] = kPointCloudComponentFourMagic;
   }
 
   return msg;
