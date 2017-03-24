@@ -129,10 +129,7 @@ void Node::PublishTrajectoryStates() {
     } else {
       // If we do not publish a new point cloud, we still allow time of the
       // published poses to advance.
-      //stamped_transform.header.stamp = builtin_interfaces::msg::Time::now();
-      std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
-      stamped_transform.header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
-      stamped_transform.header.stamp.nanosec = now.count() % 1000000000;
+      stamped_transform.header.stamp = rclcpp::Time::now();
     }
 
     if (trajectory_state.published_to_tracking != nullptr) {
