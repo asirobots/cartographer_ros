@@ -173,4 +173,5 @@ int main(int argc, char** argv) {
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   cartographer_ros::Run();
+  ::rclcpp::shutdown();
 }
