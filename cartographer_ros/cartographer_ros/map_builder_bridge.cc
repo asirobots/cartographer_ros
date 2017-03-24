@@ -19,7 +19,7 @@
 #include "cartographer_ros/assets_writer.h"
 #include "cartographer_ros/msg_conversion.h"
 #include "cartographer_ros/occupancy_grid.h"
-#include "cartographer_ros_msgs/msg/trajectory_submap_list.h"
+#include "cartographer_ros_msgs/msg/trajectory_submap_list.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 
 namespace cartographer_ros {

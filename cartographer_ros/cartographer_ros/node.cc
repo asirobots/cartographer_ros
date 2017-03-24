@@ -36,8 +36,7 @@
 #include "cartographer_ros/time_conversion.h"
 #include "glog/logging.h"
 #include "nav_msgs/msg/odometry.hpp"
-//#include "ros/serialization.h"
-#include "sensor_msgs/msg/point_cloud2.h"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2_eigen/tf2_eigen.h"
 
