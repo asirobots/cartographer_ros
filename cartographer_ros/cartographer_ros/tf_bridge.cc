@@ -30,7 +30,7 @@ TfBridge::TfBridge(const string& tracking_frame,
 
 std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(
     const ::cartographer::common::Time time, const string& frame_id) const {
-  tf2::Duration timeout(lookup_transform_timeout_sec_);
+  tf2::Duration timeout(lookup_transform_timeout_sec_ * 1000000000.0);
   std::unique_ptr<::cartographer::transform::Rigid3d> frame_id_to_tracking;
   try {
     const ::builtin_interfaces::msg::Time latest_tf_time =

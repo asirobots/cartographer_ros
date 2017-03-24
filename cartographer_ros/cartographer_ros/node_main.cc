@@ -53,9 +53,8 @@ NodeOptions LoadOptions() {
 
 void Run() {
   const auto options = LoadOptions();
-  constexpr double kTfBufferCacheTimeInSeconds = 1e6;
-  //tf2_ros::Buffer tf_buffer{::ros::Duration(kTfBufferCacheTimeInSeconds)};
-  tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInSeconds)};
+  constexpr double kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
+  tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
   tf2_ros::TransformListener tf(tf_buffer);
   Node node(options, &tf_buffer);
   node.Initialize();
