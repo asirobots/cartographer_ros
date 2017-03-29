@@ -26,7 +26,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
+//#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace cartographer_ros {
@@ -48,9 +48,9 @@ class SensorBridge {
                         const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
   void HandleLaserScanMessage(const string& sensor_id,
                               const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
-  void HandleMultiEchoLaserScanMessage(
-      const string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
+//  void HandleMultiEchoLaserScanMessage(
+//      const string& sensor_id,
+//      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
   void HandlePointCloud2Message(const string& sensor_id,
                                 const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 

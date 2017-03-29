@@ -32,7 +32,7 @@
 //#include "pcl_conversions/pcl_conversions.h"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
+//#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace cartographer_ros {
@@ -42,9 +42,9 @@ sensor_msgs::msg::LaserScan ToLaserScan(
     int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::proto::LaserScan& laser_scan);
 
-sensor_msgs::msg::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
-    int64 timestamp, const string& frame_id,
-    const ::cartographer::sensor::proto::LaserScan& laser_scan);
+//sensor_msgs::msg::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
+//    int64 timestamp, const string& frame_id,
+//    const ::cartographer::sensor::proto::LaserScan& laser_scan);
 
 sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     int64 timestamp, const string& frame_id,
@@ -63,8 +63,8 @@ geometry_msgs::msg::Pose ToGeometryMsgPose(
 ::cartographer::sensor::proto::LaserScan ToCartographer(
     const sensor_msgs::msg::LaserScan& msg);
 
-::cartographer::sensor::proto::LaserScan ToCartographer(
-    const sensor_msgs::msg::MultiEchoLaserScan& msg);
+//::cartographer::sensor::proto::LaserScan ToCartographer(
+//    const sensor_msgs::msg::MultiEchoLaserScan& msg);
 
 ::cartographer::transform::Rigid3d ToRigid3d(
     const geometry_msgs::msg::TransformStamped& transform);

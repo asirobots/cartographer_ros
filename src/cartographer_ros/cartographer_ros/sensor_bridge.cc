@@ -152,12 +152,12 @@ void SensorBridge::HandleLaserScanMessage(
                     carto::sensor::ToPointCloud(ToCartographer(*msg)));
 }
 
-void SensorBridge::HandleMultiEchoLaserScanMessage(
-    const string& sensor_id,
-    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg) {
-  HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
-                    carto::sensor::ToPointCloud(ToCartographer(*msg)));
-}
+//void SensorBridge::HandleMultiEchoLaserScanMessage(
+//    const string& sensor_id,
+//    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg) {
+//  HandleRangefinder(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
+//                    carto::sensor::ToPointCloud(ToCartographer(*msg)));
+//}
 
 void SensorBridge::HandlePointCloud2Message(
     const string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {

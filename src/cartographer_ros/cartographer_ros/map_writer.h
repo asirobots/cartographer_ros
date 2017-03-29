@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "nav_msgs/msg/occupancy_grid.hpp"
+#include <nav_msgs/msg/occupancy_grid.hpp>
 
 namespace cartographer_ros {
 

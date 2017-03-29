@@ -1,0 +1,6 @@
+build/
+install/
+src/cartographer/
+src/ceres_solver/
+\.idea/
+**/cmake-build*/

@@ -41,7 +41,6 @@ find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(tf2_eigen REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(console_bridge REQUIRED)
 
@@ -57,7 +56,6 @@ include_directories(
   "."
   ${tf2_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
-  ${tf2_eigen_INCLUDE_DIRS}
 )
 
 set(ALL_SRCS

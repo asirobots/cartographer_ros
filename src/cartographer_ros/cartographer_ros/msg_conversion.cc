@@ -30,7 +30,7 @@
 #include "glog/logging.h"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
+//#include "sensor_msgs/msg/multi_echo_laser_scan.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace cartographer_ros {
@@ -76,34 +76,34 @@ sensor_msgs::msg::PointCloud2 PreparePointCloud2Message(const int64 timestamp,
 
 }  // namespace
 
-sensor_msgs::msg::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
-    const int64 timestamp, const string& frame_id,
-    const ::cartographer::sensor::proto::LaserScan& laser_scan) {
-  sensor_msgs::msg::MultiEchoLaserScan msg;
-  msg.header.stamp = ToRos(::cartographer::common::FromUniversal(timestamp));
-  msg.header.frame_id = frame_id;
-
-  msg.angle_min = laser_scan.angle_min();
-  msg.angle_max = laser_scan.angle_max();
-  msg.angle_increment = laser_scan.angle_increment();
-  msg.time_increment = laser_scan.time_increment();
-  msg.scan_time = laser_scan.scan_time();
-  msg.range_min = laser_scan.range_min();
-  msg.range_max = laser_scan.range_max();
-
-  for (const auto& echoes : laser_scan.range()) {
-    msg.ranges.emplace_back();
-    std::copy(echoes.value().begin(), echoes.value().end(),
-              std::back_inserter(msg.ranges.back().echoes));
-  }
-
-  for (const auto& echoes : laser_scan.intensity()) {
-    msg.intensities.emplace_back();
-    std::copy(echoes.value().begin(), echoes.value().end(),
-              std::back_inserter(msg.intensities.back().echoes));
-  }
-  return msg;
-}
+//sensor_msgs::msg::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
+//    const int64 timestamp, const string& frame_id,
+//    const ::cartographer::sensor::proto::LaserScan& laser_scan) {
+//  sensor_msgs::msg::MultiEchoLaserScan msg;
+//  msg.header.stamp = ToRos(::cartographer::common::FromUniversal(timestamp));
+//  msg.header.frame_id = frame_id;
+//
+//  msg.angle_min = laser_scan.angle_min();
+//  msg.angle_max = laser_scan.angle_max();
+//  msg.angle_increment = laser_scan.angle_increment();
+//  msg.time_increment = laser_scan.time_increment();
+//  msg.scan_time = laser_scan.scan_time();
+//  msg.range_min = laser_scan.range_min();
+//  msg.range_max = laser_scan.range_max();
+//
+//  for (const auto& echoes : laser_scan.range()) {
+//    msg.ranges.emplace_back();
+//    std::copy(echoes.value().begin(), echoes.value().end(),
+//              std::back_inserter(msg.ranges.back().echoes));
+//  }
+//
+//  for (const auto& echoes : laser_scan.intensity()) {
+//    msg.intensities.emplace_back();
+//    std::copy(echoes.value().begin(), echoes.value().end(),
+//              std::back_inserter(msg.intensities.back().echoes));
+//  }
+//  return msg;
+//}
 
 sensor_msgs::msg::LaserScan ToLaserScan(
     const int64 timestamp, const string& frame_id,
@@ -207,31 +207,31 @@ sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
   return proto;
 }
 
-::cartographer::sensor::proto::LaserScan ToCartographer(
-    const sensor_msgs::msg::MultiEchoLaserScan& msg) {
-  ::cartographer::sensor::proto::LaserScan proto;
-  proto.set_angle_min(msg.angle_min);
-  proto.set_angle_max(msg.angle_max);
-  proto.set_angle_increment(msg.angle_increment);
-  proto.set_time_increment(msg.time_increment);
-  proto.set_scan_time(msg.scan_time);
-  proto.set_range_min(msg.range_min);
-  proto.set_range_max(msg.range_max);
-
-  for (const auto& range : msg.ranges) {
-    auto* proto_echoes = proto.add_range()->mutable_value();
-    for (const auto& echo : range.echoes) {
-      proto_echoes->Add(echo);
-    }
-  }
-  for (const auto& intensity : msg.intensities) {
-    auto* proto_echoes = proto.add_intensity()->mutable_value();
-    for (const auto& echo : intensity.echoes) {
-      proto_echoes->Add(echo);
-    }
-  }
-  return proto;
-}
+//::cartographer::sensor::proto::LaserScan ToCartographer(
+//    const sensor_msgs::msg::MultiEchoLaserScan& msg) {
+//  ::cartographer::sensor::proto::LaserScan proto;
+//  proto.set_angle_min(msg.angle_min);
+//  proto.set_angle_max(msg.angle_max);
+//  proto.set_angle_increment(msg.angle_increment);
+//  proto.set_time_increment(msg.time_increment);
+//  proto.set_scan_time(msg.scan_time);
+//  proto.set_range_min(msg.range_min);
+//  proto.set_range_max(msg.range_max);
+//
+//  for (const auto& range : msg.ranges) {
+//    auto* proto_echoes = proto.add_range()->mutable_value();
+//    for (const auto& echo : range.echoes) {
+//      proto_echoes->Add(echo);
+//    }
+//  }
+//  for (const auto& intensity : msg.intensities) {
+//    auto* proto_echoes = proto.add_intensity()->mutable_value();
+//    for (const auto& echo : intensity.echoes) {
+//      proto_echoes->Add(echo);
+//    }
+//  }
+//  return proto;
+//}
 
 Rigid3d ToRigid3d(const geometry_msgs::msg::TransformStamped& transform) {
   return Rigid3d(ToEigen(transform.transform.translation),

@@ -38,7 +38,6 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "tf2_eigen/tf2_eigen.h"
 
 namespace cartographer_ros {
 
@@ -126,7 +125,7 @@ void Node::PublishTrajectoryStates() {
     } else {
       // If we do not publish a new point cloud, we still allow time of the
       // published poses to advance.
-      stamped_transform.header.stamp = rclcpp::Time::now();
+      stamped_transform.header.stamp = TimeStub::now();
     }
 
     if (trajectory_state.published_to_tracking != nullptr) {

@@ -88,7 +88,7 @@ void MapBuilderBridge::HandleSubmapQuery(
 
 cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
   cartographer_ros_msgs::msg::SubmapList submap_list;
-  submap_list.header.stamp = rclcpp::Time::now();
+  submap_list.header.stamp = TimeStub::now();
 
   submap_list.header.frame_id = options_.map_frame;
   for (int trajectory_id = 0;
