@@ -1,0 +1,9 @@
+repositories:
+  cartographer:
+    type: git
+    url: https://github.com/asirobots/cartographer.git
+    version: master
+  ceres_solver:
+    type: git
+    url: https://github.com/asirobots/ceres-solver.git
+    version: master
