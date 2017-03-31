@@ -2,5 +2,6 @@ build/
 install/
 src/cartographer/
 src/ceres_solver/
+src/asi/
 \.idea/
 **/cmake-build*/

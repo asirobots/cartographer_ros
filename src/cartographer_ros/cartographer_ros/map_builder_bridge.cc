@@ -28,7 +28,9 @@ MapBuilderBridge::MapBuilderBridge(const NodeOptions& options,
                                    tf2_ros::Buffer* const tf_buffer)
     : options_(options),
       map_builder_(options.map_builder_options, &constant_data_),
-      tf_buffer_(tf_buffer) {}
+      tf_buffer_(tf_buffer) {
+  last_time.sec = -1;
+}
 
 int MapBuilderBridge::AddTrajectory(
     const std::unordered_set<string>& expected_sensor_ids,
@@ -88,7 +90,7 @@ void MapBuilderBridge::HandleSubmapQuery(
 
 cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
   cartographer_ros_msgs::msg::SubmapList submap_list;
-  submap_list.header.stamp = rclcpp::Time::now();
+  submap_list.header.stamp = last_time.sec < 0 ? rclcpp::Time::now() : last_time;
 
   submap_list.header.frame_id = options_.map_frame;
   for (int trajectory_id = 0;

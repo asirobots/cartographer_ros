@@ -60,6 +60,8 @@ class MapBuilderBridge {
 
   SensorBridge* sensor_bridge(int trajectory_id);
 
+  builtin_interfaces::msg::Time last_time;
+
  private:
   const NodeOptions options_;
 

@@ -25,6 +25,7 @@
 #include "cartographer_ros/ros_log_sink.h"
 #include "gflags/gflags.h"
 #include "tf2_ros/transform_listener.h"
+#include "asiframework_msgs/msg/asi_time.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include "cartographer_ros_msgs/srv/finish_trajectory.hpp"
 
@@ -62,28 +63,33 @@ void Run() {
   int trajectory_id = -1;
   std::unordered_set<string> expected_sensor_ids;
 
+  auto clock_subscriber = node.node_handle()->create_subscription<asiframework_msgs::msg::AsiTime>("asi_clock",
+    [&](asiframework_msgs::msg::AsiTime::SharedPtr msg) {
+        node.map_builder_bridge()->last_time = msg->time;
+    });
+
   // For 2D SLAM, subscribe to exactly one horizontal laser.
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_subscriber;
   if (options.use_laser_scan) {
     laser_scan_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::LaserScan>(
-                                                                                                 kLaserScanTopic,
-                                                                                                 [&](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
-                                                                                                   node.map_builder_bridge()
-                                                                                                   ->sensor_bridge(trajectory_id)
-                                                                                                   ->HandleLaserScanMessage(kLaserScanTopic, msg);
-                               }, rmw_qos_profile_default);
+                   kLaserScanTopic,
+                   [&](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
+                     node.map_builder_bridge()
+                     ->sensor_bridge(trajectory_id)
+                     ->HandleLaserScanMessage(kLaserScanTopic, msg);
+                 }, rmw_qos_profile_default);
     expected_sensor_ids.insert(kLaserScanTopic);
   }
 
   rclcpp::Subscription<sensor_msgs::msg::MultiEchoLaserScan>::SharedPtr multi_echo_laser_scan_subscriber;
   if (options.use_multi_echo_laser_scan) {
     multi_echo_laser_scan_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::MultiEchoLaserScan>(
-                                                                                                 kMultiEchoLaserScanTopic,
-                                                                                                 [&](sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
-                                                                                                   node.map_builder_bridge()
-                                                                                                   ->sensor_bridge(trajectory_id)
-                                                                                                   ->HandleMultiEchoLaserScanMessage(kMultiEchoLaserScanTopic, msg);
-                               }, rmw_qos_profile_default);
+                   kMultiEchoLaserScanTopic,
+                   [&](sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
+                     node.map_builder_bridge()
+                     ->sensor_bridge(trajectory_id)
+                     ->HandleMultiEchoLaserScanMessage(kMultiEchoLaserScanTopic, msg);
+                 }, rmw_qos_profile_default);
     expected_sensor_ids.insert(kMultiEchoLaserScanTopic);
   }
 

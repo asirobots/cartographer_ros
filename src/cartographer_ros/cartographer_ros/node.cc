@@ -126,7 +126,8 @@ void Node::PublishTrajectoryStates() {
     } else {
       // If we do not publish a new point cloud, we still allow time of the
       // published poses to advance.
-      stamped_transform.header.stamp = rclcpp::Time::now();
+      auto lt = map_builder_bridge_.last_time;
+      stamped_transform.header.stamp = lt.sec < 0 ? rclcpp::Time::now() : lt;
     }
 
     if (trajectory_state.published_to_tracking != nullptr) {

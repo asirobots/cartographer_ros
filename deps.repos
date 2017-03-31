@@ -7,3 +7,8 @@ repositories:
     type: git
     url: https://github.com/asirobots/ceres-solver.git
     version: master
+  asi/asiframework:
+    type: hg
+    url: https://mercurial.asirobots.com:8443/scm/hg/asiframework
+    version: default
+
