@@ -21,8 +21,8 @@
 #  SRCS
 #    node_main.cc
 #)
-add_executable(cartographer_node
-  node_main.cc)
+
+add_executable(cartographer_node node_main.cc)
 target_include_directories(cartographer_node SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
 target_link_libraries(cartographer_node ${PROJECT_NAME})
 ament_target_dependencies(cartographer_node "rclcpp" "sensor_msgs" "nav_msgs" "tf2_ros" "cartographer_ros_msgs" "tf2" "tf2_msgs" "console_bridge" "asiframework_msgs")
@@ -32,30 +32,3 @@ install(TARGETS
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
-
-#install(TARGETS
-#  cartographer_node
-#  DESTINATION bin)
-
-# install(TARGETS cartographer_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-# install(TARGETS cartographer_assets_writer
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-# google_binary(cartographer_offline_node
-#   SRCS
-#     offline_node_main.cc
-# )
-
-# install(TARGETS cartographer_offline_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )

@@ -15,12 +15,7 @@
  */
 
 #include "cartographer_ros/time_conversion.h"
-
-#include <chrono>
-
-#include "cartographer/common/time.h"
 #include "gtest/gtest.h"
-#include "ros/ros.h"
 
 namespace cartographer_ros {
 
@@ -31,7 +26,7 @@ TEST(TimeConversion, testToRos) {
                                1468238899};
   for (int64 seconds_since_epoch : values) {
     ::builtin_interfaces::msg::Time ros_now;
-    ros_now.fromSec(seconds_since_epoch);
+    ros_now.sec = seconds_since_epoch;
     ::cartographer::common::Time cartographer_now(
         ::cartographer::common::FromSeconds(
             seconds_since_epoch +
