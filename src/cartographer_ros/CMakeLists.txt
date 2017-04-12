@@ -27,6 +27,7 @@ find_package(cartographer_ros_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(asiframework_msgs REQUIRED)
+find_package(localization_msgs REQUIRED)
 
 include(FindPkgConfig)
 pkg_search_module(YAMLCPP REQUIRED yaml-cpp>=0.5.1)

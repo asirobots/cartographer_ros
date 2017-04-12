@@ -41,6 +41,7 @@
   <build_depend>tf2_ros</build_depend>
   <build_depend>tf2_eigen</build_depend>
   <build_depend>asiframework_msgs</build_depend>
+  <build_depend>localization_msgs</build_depend>
 
   <exec_depend>cartographer_ros_msgs</exec_depend>
   <exec_depend>console_bridge</exec_depend>

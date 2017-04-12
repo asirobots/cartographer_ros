@@ -18,16 +18,12 @@
 #include <vector>
 
 #include "cartographer/common/configuration_file_resolver.h"
-#include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/make_unique.h"
-#include "cartographer/common/port.h"
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/ros_log_sink.h"
-#include "gflags/gflags.h"
 #include "tf2_ros/transform_listener.h"
 #include "asiframework_msgs/msg/asi_time.hpp"
-#include <rclcpp/rclcpp.hpp>
-#include "cartographer_ros_msgs/srv/finish_trajectory.hpp"
+#include "localization_msgs/msg/pose2_d_with_covariance_relative_stamped.hpp"
 
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
@@ -67,6 +63,31 @@ void Run() {
     [&](asiframework_msgs::msg::AsiTime::SharedPtr msg) {
         node.map_builder_bridge()->last_time = msg->time;
     });
+
+  constexpr char lean_pose_topic[] = "Vehicle_Pose";
+  auto lean_odometry_subscriber = node.node_handle()->create_subscription<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(lean_pose_topic,
+    [&](localization_msgs::msg::Pose2DWithCovarianceRelativeStamped::ConstSharedPtr lean_msg) {
+        tf2::Quaternion quat;
+        quat.setRPY(0.0, 0.0, lean_msg->pose2d.theta);
+
+        auto msg = std::make_shared<nav_msgs::msg::Odometry>();
+        msg->header = lean_msg->header;
+        msg->child_frame_id = lean_msg->child_frame_id;
+        msg->pose.pose.position.x = lean_msg->pose2d.x;
+        msg->pose.pose.position.y = lean_msg->pose2d.y;
+        msg->pose.pose.position.z = 0.0;
+        msg->pose.pose.orientation.x = quat.getX();
+        msg->pose.pose.orientation.y = quat.getY();
+        msg->pose.pose.orientation.z = quat.getZ();
+        msg->pose.pose.orientation.w = quat.getW();
+        msg->pose.covariance = {0}; // not sure how to use lean_msg->position_covariance (3 values) and not sure if it is even accurate without match-maker data
+        // msg.twist not used
+        node.map_builder_bridge()
+          ->sensor_bridge(trajectory_id)
+          ->HandleOdometryMessage(lean_pose_topic, msg);
+    }, rmw_qos_profile_default);
+  expected_sensor_ids.insert(lean_pose_topic);
+
 
   // For 2D SLAM, subscribe to exactly one horizontal laser.
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_subscriber;
@@ -154,8 +175,7 @@ void Run() {
         {
           (void)response;
           const int previous_trajectory_id = trajectory_id;
-          trajectory_id = node.map_builder_bridge()->AddTrajectory(
-                                                                   expected_sensor_ids, options.tracking_frame);
+          trajectory_id = node.map_builder_bridge()->AddTrajectory(expected_sensor_ids, options.tracking_frame);
           node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
           node.map_builder_bridge()->WriteAssets(request->stem);
         });

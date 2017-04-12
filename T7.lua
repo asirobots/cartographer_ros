@@ -17,11 +17,11 @@ include "map_builder.lua"
 options = {
   map_builder = MAP_BUILDER,
   map_frame = "map",
-  tracking_frame = "imu_link",
+  tracking_frame = "base_link",
   published_frame = "base_link",
   odom_frame = "odom",
   provide_odom_frame = true,
-  use_odometry = false,
+  use_odometry = false, -- relying on our lean message instead
   use_laser_scan = true,
   use_multi_echo_laser_scan = false,
   num_point_clouds = 0,
@@ -31,6 +31,6 @@ options = {
 }
 
 MAP_BUILDER.use_trajectory_builder_2d = true
-TRAJECTORY_BUILDER_2D.use_imu_data = true
+TRAJECTORY_BUILDER_2D.use_imu_data = false
 
 return options
