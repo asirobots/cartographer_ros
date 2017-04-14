@@ -72,7 +72,26 @@ void Run() {
         msg->child_frame_id = lean_msg->child_frame_id;
         msg->pose.pose.position = lean_msg->pose.position;
         msg->pose.pose.orientation = lean_msg->pose.orientation;
-        msg->pose.covariance = {0}; // not sure how to use lean_msg->position/orientation_covariance (6 values) and not sure if it is even accurate without match-maker data
+        auto pc = lean_msg->position_covariance;
+        auto oc = lean_msg->orientation_covariance;
+        //std::cout << "PC: " << pc[0] << ", " << pc[1] << ", " << pc[2] << ", " << pc[3] << ", " << pc[4] << ", " << pc[5] << std::endl;
+        //std::cout << "OC: " << oc[0] << ", " << oc[1] << ", " << oc[2] << ", " << oc[3] << ", " << oc[4] << ", " << oc[5] << std::endl;
+        msg->pose.covariance = {0};
+
+        msg->pose.covariance[0] = pc[0];
+        msg->pose.covariance[1] = msg->pose.covariance[6] = pc[1];
+        msg->pose.covariance[2] = msg->pose.covariance[12] = pc[2];
+        msg->pose.covariance[7] = pc[3];
+        msg->pose.covariance[4] = msg->pose.covariance[13] = pc[4];
+        msg->pose.covariance[14] = pc[5];
+
+        msg->pose.covariance[21] = oc[0];
+        msg->pose.covariance[22] = msg->pose.covariance[27] = oc[1];
+        msg->pose.covariance[23] = msg->pose.covariance[33] = oc[2];
+        msg->pose.covariance[28] = oc[3];
+        msg->pose.covariance[29] = msg->pose.covariance[34] = oc[4];
+        msg->pose.covariance[35] = oc[5];
+
         // msg.twist not used
         node.map_builder_bridge()
           ->sensor_bridge(trajectory_id)

@@ -30,30 +30,19 @@ TfBridge::TfBridge(const string& tracking_frame,
 
 std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(
     const ::cartographer::common::Time time, const string& frame_id) const {
-  tf2::Duration timeout(lookup_transform_timeout_sec_ * 1000000000.0);
-  std::unique_ptr<::cartographer::transform::Rigid3d> frame_id_to_tracking;
   try {
-    const ::builtin_interfaces::msg::Time latest_tf_time = buffer_
-      ->lookupTransform(tracking_frame_, frame_id, tf2::TimePointZero,
-      timeout).header.stamp;
-
+    const auto latest_transform = buffer_->lookupTransform(tracking_frame_, frame_id, tf2::TimePointZero, tf2::Duration(0.0));
+    const ::builtin_interfaces::msg::Time latest_tf_time = latest_transform.header.stamp;
     const ::builtin_interfaces::msg::Time requested_tf_time = ToRos(time);
-    //std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> converted{std::chrono::nanoseconds{requested_time.sec*1000000000LL+requested_time.nanosec}};
-    //std::chrono::system_clock::time_point recovered = std::chrono::time_point_cast<std::chrono::system_clock::duration>(converted);
-
-    //std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> converted_tf_time{std::chrono::nanoseconds{latest_tf_time.sec*1000000000LL+latest_tf_time.nanosec}};
-    //std::chrono::system_clock::time_point recovered_tf_time = std::chrono::time_point_cast<std::chrono::system_clock::duration>(converted_tf_time);
-    //if (recovered_tf_time >= recovered) {
 
     const auto latest_time = std::chrono::seconds(latest_tf_time.sec) + std::chrono::nanoseconds(latest_tf_time.nanosec);
     const auto requested_time = std::chrono::seconds(requested_tf_time.sec) + std::chrono::nanoseconds(requested_tf_time.nanosec);
+    tf2::Duration timeout(lookup_transform_timeout_sec_ * 1000000000.0);
     if (latest_time >= requested_time) {
       // We already have newer data, so we do not wait. Otherwise, we would wait
       // for the full 'timeout' even if we ask for data that is too old.
       timeout = tf2::Duration(0.0);
     }
-
-    // question: why not wait for requested_time - latest_time?
 
     return ::cartographer::common::make_unique<
         ::cartographer::transform::Rigid3d>(ToRigid3d(buffer_->lookupTransform(
