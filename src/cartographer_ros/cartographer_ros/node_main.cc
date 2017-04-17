@@ -23,7 +23,6 @@
 #include "cartographer_ros/ros_log_sink.h"
 #include "tf2_ros/transform_listener.h"
 #include "asiframework_msgs/msg/asi_time.hpp"
-#include "localization_msgs/msg/pose_with_covariance_lean_relative_stamped.hpp"
 
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "

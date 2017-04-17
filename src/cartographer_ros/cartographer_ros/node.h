@@ -28,9 +28,11 @@
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include "cartographer_ros_msgs/msg/trajectory_submap_list.hpp"
-//#include "ros/ros.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include <rclcpp/rclcpp.hpp>
+#include "localization_msgs/msg/pose_with_covariance_lean_relative_stamped.hpp"
+#include "localization_msgs/msg/pose2_d_with_covariance_relative_stamped.hpp"
+
 
 namespace cartographer_ros {
 
@@ -88,6 +90,7 @@ class Node {
   // We have to keep the timer handles of ::ros::WallTimers around, otherwise
   // they do not fire.
   std::vector<::rclcpp::timer::TimerBase::SharedPtr> wall_timers_;
+  std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> lean_pose_publisher;
 };
 
 }  // namespace cartographer_ros
