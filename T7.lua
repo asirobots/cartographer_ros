@@ -25,24 +25,33 @@ options = {
   use_laser_scan = true,
   use_multi_echo_laser_scan = false,
   num_point_clouds = 0,
-  lookup_transform_timeout_sec = 0.001,
-  submap_publish_period_sec = 0.3,
-  pose_publish_period_sec = 0.02,
+  lookup_transform_timeout_sec = 0.01,
+  submap_publish_period_sec = 0.4,
+  pose_publish_period_sec = 0.04,
 }
 
 MAP_BUILDER.use_trajectory_builder_2d = true
-MAP_BUILDER.sparse_pose_graph.optimize_every_n_scans = 10
+MAP_BUILDER.sparse_pose_graph.optimize_every_n_scans = 50 -- going to expect 20 per second
 
 TRAJECTORY_BUILDER_2D.use_imu_data = false
-TRAJECTORY_BUILDER_2D.num_odometry_states = 100
+TRAJECTORY_BUILDER_2D.num_odometry_states = 200
 TRAJECTORY_BUILDER_2D.laser_min_range = 0.2
-TRAJECTORY_BUILDER_2D.laser_max_range = 12.
+TRAJECTORY_BUILDER_2D.laser_max_range = 30.
 -- missing return values inserted at this length:
-TRAJECTORY_BUILDER_2D.laser_missing_echo_ray_length = 10.
+TRAJECTORY_BUILDER_2D.laser_missing_echo_ray_length = 5.
 TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true
-TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 0.5 -- default 0.1
-TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.angular_search_window = math.rad(15.) -- default 20deg
 
-SPARSE_POSE_GRAPH.optimization_problem.huber_scale = 1e2
+TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 5.
+TRAJECTORY_BUILDER_2D.motion_filter.max_distance_meters = .2
+TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(1)
+
+-- we can do a full 360deg turn in about 4 seconds, that's about 40m distance on the tip per second
+-- however, we are doing 20 scans per second
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 2. -- default 0.1
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.angular_search_window = math.rad(30.) -- default 20deg
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.translation_delta_cost_weight = 0.3
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.rotation_delta_cost_weight = 0.3
+
+SPARSE_POSE_GRAPH.optimization_problem.huber_scale = 100
 
 return options

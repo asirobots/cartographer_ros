@@ -70,7 +70,6 @@ namespace carto = ::cartographer;
 carto::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
     const sensor_msgs::PointCloud2::ConstPtr& message) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
-  fromROSMsg(*message, pcl_point_cloud);
   pcl::fromROSMsg(*message, pcl_point_cloud);
   carto::sensor::PointCloudWithIntensities point_cloud;
 
