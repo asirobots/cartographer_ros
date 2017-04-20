@@ -66,32 +66,38 @@ void Run() {
   constexpr char lean_pose_topic[] = "Vehicle_Pose";
   auto lean_odometry_subscriber = node.node_handle()->create_subscription<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(lean_pose_topic,
     [&](localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped::ConstSharedPtr lean_msg) {
+
+        auto psn = lean_msg->pose.position;
+        auto pso = lean_msg->pose.orientation;
+
+        if (std::isnan(psn.x) || std::isnan(psn.y) || std::isnan(psn.z)) return;
+        if (std::isnan(pso.x) || std::isnan(pso.y) || std::isnan(pso.z) || std::isnan(pso.w)) return;
+
         auto msg = std::make_shared<nav_msgs::msg::Odometry>();
         msg->header = lean_msg->header;
         msg->child_frame_id = lean_msg->child_frame_id;
-        msg->pose.pose.position = lean_msg->pose.position;
-        msg->pose.pose.orientation = lean_msg->pose.orientation;
-        auto pc = lean_msg->position_covariance;
-        auto oc = lean_msg->orientation_covariance;
-        //std::cout << "PC: " << pc[0] << ", " << pc[1] << ", " << pc[2] << ", " << pc[3] << ", " << pc[4] << ", " << pc[5] << std::endl;
-        //std::cout << "OC: " << oc[0] << ", " << oc[1] << ", " << oc[2] << ", " << oc[3] << ", " << oc[4] << ", " << oc[5] << std::endl;
-        msg->pose.covariance = {0};
+        msg->pose.pose.position = psn;
+        msg->pose.pose.orientation = pso;
 
-        msg->pose.covariance[0] = pc[0];
-        msg->pose.covariance[1] = msg->pose.covariance[6] = pc[1];
-        msg->pose.covariance[2] = msg->pose.covariance[12] = pc[2];
-        msg->pose.covariance[7] = pc[3];
-        msg->pose.covariance[4] = msg->pose.covariance[13] = pc[4];
-        msg->pose.covariance[14] = pc[5];
+        // we don't need the covariance (and 4 of the 6 position covs don't work), but as a reference:
+        //auto pc = lean_msg->position_covariance;
+        //auto oc = lean_msg->orientation_covariance;
+        //msg->pose.covariance = {0};
+        //msg->pose.covariance[0] = pc[0];
+        //msg->pose.covariance[1] = msg->pose.covariance[6] = pc[1];
+        //msg->pose.covariance[2] = msg->pose.covariance[12] = pc[2];
+        //msg->pose.covariance[7] = pc[3];
+        //msg->pose.covariance[4] = msg->pose.covariance[13] = pc[4];
+        //msg->pose.covariance[14] = pc[5];
+        //msg->pose.covariance[21] = oc[0];
+        //msg->pose.covariance[22] = msg->pose.covariance[27] = oc[1];
+        //msg->pose.covariance[23] = msg->pose.covariance[33] = oc[2];
+        //msg->pose.covariance[28] = oc[3];
+        //msg->pose.covariance[29] = msg->pose.covariance[34] = oc[4];
+        //msg->pose.covariance[35] = oc[5];
 
-        msg->pose.covariance[21] = oc[0];
-        msg->pose.covariance[22] = msg->pose.covariance[27] = oc[1];
-        msg->pose.covariance[23] = msg->pose.covariance[33] = oc[2];
-        msg->pose.covariance[28] = oc[3];
-        msg->pose.covariance[29] = msg->pose.covariance[34] = oc[4];
-        msg->pose.covariance[35] = oc[5];
+        // msg.twist not used either
 
-        // msg.twist not used
         node.map_builder_bridge()
           ->sensor_bridge(trajectory_id)
           ->HandleOdometryMessage(lean_pose_topic, msg);

@@ -38,7 +38,6 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "tf2_eigen/tf2_eigen.h"
 
 namespace cartographer_ros {
 
@@ -67,7 +66,8 @@ Node::~Node() {
 void Node::Initialize() {
   carto::common::MutexLocker lock(&mutex_);
   submap_list_publisher_ = node_handle_->create_publisher<::cartographer_ros_msgs::msg::SubmapList>(kSubmapListTopic, rmw_qos_profile_default);
-  lean_pose_publisher = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>("cartographer_pose", rmw_qos_profile_default);
+  if (options_.publish_asi_pose)
+    lean_pose_publisher = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>("cartographer_pose", rmw_qos_profile_default);
   submap_query_server_ = node_handle_->create_service<::cartographer_ros_msgs::srv::SubmapQuery>(kSubmapQueryServiceName,
         [this] (
                 const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
@@ -158,26 +158,28 @@ void Node::PublishTrajectoryStates() {
         tf_broadcaster_->sendTransform(stamped_transform);
       }
 
-      localization_msgs::msg::Pose2DWithCovarianceRelativeStamped poseMsg;
-      poseMsg.header.stamp = stamped_transform.header.stamp;
-      poseMsg.header.frame_id = options_.map_frame;
-      poseMsg.child_frame_id = options_.published_frame;
+      if (options_.publish_asi_pose) {
+        localization_msgs::msg::Pose2DWithCovarianceRelativeStamped poseMsg;
+        poseMsg.header.stamp = stamped_transform.header.stamp;
+        poseMsg.header.frame_id = options_.map_frame;
+        poseMsg.child_frame_id = options_.published_frame;
 
-      auto& orientation = tracking_to_local.rotation();
-      auto& position = tracking_to_local.translation();
-      poseMsg.pose2d.x = position.x();
-      poseMsg.pose2d.y = position.y();
-      // float yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1)); for q0 = w, q1 = x
-      auto q0 = orientation.w();
-      auto q1 = orientation.x();
-      auto q2 = orientation.y();
-      auto q3 = orientation.z();
-      poseMsg.pose2d.theta = std::atan2(2.0 * (q3 * q0 + q1 * q2), -1.0 + 2.0 * (q0 * q0 + q1 * q1));
+        auto &orientation = tracking_to_local.rotation();
+        auto &position = tracking_to_local.translation();
+        poseMsg.pose2d.x = position.x();
+        poseMsg.pose2d.y = position.y();
+        // float yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1)); for q0 = w, q1 = x
+        auto q0 = orientation.w();
+        auto q1 = orientation.x();
+        auto q2 = orientation.y();
+        auto q3 = orientation.z();
+        poseMsg.pose2d.theta = std::atan2(2.0 * (q3 * q0 + q1 * q2), -1.0 + 2.0 * (q0 * q0 + q1 * q1));
 
-      poseMsg.position_covariance = {0.05, 0.0, 0.05};
-      poseMsg.yaw_covariance = 0.15;
+        poseMsg.position_covariance = {0.05, 0.0, 0.05};
+        poseMsg.yaw_covariance = 0.15;
 
-      lean_pose_publisher->publish(poseMsg);
+        lean_pose_publisher->publish(poseMsg);
+      }
     }
   }
 }

@@ -28,6 +28,7 @@ options = {
   lookup_transform_timeout_sec = 0.01,
   submap_publish_period_sec = 0.4,
   pose_publish_period_sec = 0.04,
+  publish_asi_pose = false
 }
 
 MAP_BUILDER.use_trajectory_builder_2d = true

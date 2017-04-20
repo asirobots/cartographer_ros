@@ -48,6 +48,9 @@ NodeOptions CreateNodeOptions(
   options.pose_publish_period_sec =
       lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
 
+  options.publish_asi_pose =
+    lua_parameter_dictionary->GetBool("publish_asi_pose");
+
   CHECK_EQ(options.use_laser_scan + options.use_multi_echo_laser_scan +
                (options.num_point_clouds > 0),
            1)
