@@ -17,6 +17,8 @@
 #ifndef CARTOGRAPHER_ROS_URDF_READER_H_
 #define CARTOGRAPHER_ROS_URDF_READER_H_
 
+#include <vector>
+
 #include "cartographer/common/port.h"
 #include "tf2_ros/buffer.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"

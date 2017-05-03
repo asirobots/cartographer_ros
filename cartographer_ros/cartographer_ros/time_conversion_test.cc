@@ -18,7 +18,6 @@
 #include "gtest/gtest.h"
 
 namespace cartographer_ros {
-
 namespace {
 
 TEST(TimeConversion, testToRos) {

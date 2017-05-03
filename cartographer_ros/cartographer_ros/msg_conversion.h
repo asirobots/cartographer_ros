@@ -22,7 +22,6 @@
 #include "cartographer/common/port.h"
 #include "cartographer/kalman_filter/pose_tracker.h"
 #include "cartographer/sensor/point_cloud.h"
-#include "cartographer/sensor/proto/sensor.pb.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/transform.hpp"
@@ -37,34 +36,24 @@
 
 namespace cartographer_ros {
 
-// Returns a laser scan consisting of the first echo of each beam.
-sensor_msgs::msg::LaserScan ToLaserScan(
-    int64 timestamp, const string& frame_id,
-    const ::cartographer::sensor::proto::LaserScan& laser_scan);
-
-sensor_msgs::msg::MultiEchoLaserScan ToMultiEchoLaserScanMessage(
-    int64 timestamp, const string& frame_id,
-    const ::cartographer::sensor::proto::LaserScan& laser_scan);
-
-sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
+sensor_msgs::PointCloud2 ToPointCloud2Message(
     int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::PointCloud& point_cloud);
 
-sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
-    int64 timestamp, const string& frame_id,
-    const ::cartographer::sensor::proto::RangeData& laser_fan);
-
-geometry_msgs::msg::Transform ToGeometryMsgTransform(
+geometry_msgs::Transform ToGeometryMsgTransform(
     const ::cartographer::transform::Rigid3d& rigid3d);
 
 geometry_msgs::msg::Pose ToGeometryMsgPose(
     const ::cartographer::transform::Rigid3d& rigid3d);
 
-::cartographer::sensor::proto::LaserScan ToCartographer(
-    const sensor_msgs::msg::LaserScan& msg);
+::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
+    const sensor_msgs::LaserScan& msg);
 
-::cartographer::sensor::proto::LaserScan ToCartographer(
-    const sensor_msgs::msg::MultiEchoLaserScan& msg);
+::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
+    const sensor_msgs::MultiEchoLaserScan& msg);
+
+::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
+    const sensor_msgs::PointCloud2& message);
 
 ::cartographer::transform::Rigid3d ToRigid3d(
     const geometry_msgs::msg::TransformStamped& transform);

@@ -182,7 +182,22 @@ void Run() {
   trajectory_id = node.map_builder_bridge()->AddTrajectory(
       expected_sensor_ids, options.tracking_frame);
 
-  ::rclcpp::service::Service<::cartographer_ros_msgs::srv::FinishTrajectory>::SharedPtr finish_trajectory_server;
+  ::ros::ServiceServer finish_trajectory_server =
+      node.node_handle()->advertiseService(
+          kFinishTrajectoryServiceName,
+          boost::function<bool(
+              ::cartographer_ros_msgs::FinishTrajectory::Request&,
+              ::cartographer_ros_msgs::FinishTrajectory::Response&)>(
+              [&](::cartographer_ros_msgs::FinishTrajectory::Request& request,
+                  ::cartographer_ros_msgs::FinishTrajectory::Response&) {
+                const int previous_trajectory_id = trajectory_id;
+                trajectory_id = node.map_builder_bridge()->AddTrajectory(
+                    expected_sensor_ids, options.tracking_frame);
+                node.map_builder_bridge()->FinishTrajectory(
+                    previous_trajectory_id);
+                node.map_builder_bridge()->WriteAssets(request.stem);
+                return true;
+              }));
 
   finish_trajectory_server = node.node_handle()->create_service<::cartographer_ros_msgs::srv::FinishTrajectory>(kFinishTrajectoryServiceName,
         [&] (
