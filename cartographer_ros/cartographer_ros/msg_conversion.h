@@ -36,24 +36,24 @@
 
 namespace cartographer_ros {
 
-sensor_msgs::PointCloud2 ToPointCloud2Message(
+sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::PointCloud& point_cloud);
 
-geometry_msgs::Transform ToGeometryMsgTransform(
+geometry_msgs::msg::Transform ToGeometryMsgTransform(
     const ::cartographer::transform::Rigid3d& rigid3d);
 
 geometry_msgs::msg::Pose ToGeometryMsgPose(
     const ::cartographer::transform::Rigid3d& rigid3d);
 
 ::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::LaserScan& msg);
+    const sensor_msgs::msg::LaserScan& msg);
 
 ::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::MultiEchoLaserScan& msg);
+    const sensor_msgs::msg::MultiEchoLaserScan& msg);
 
 ::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::PointCloud2& message);
+    const sensor_msgs::msg::PointCloud2& message);
 
 ::cartographer::transform::Rigid3d ToRigid3d(
     const geometry_msgs::msg::TransformStamped& transform);

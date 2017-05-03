@@ -80,11 +80,11 @@ bool HasEcho(float) { return true; }
 float GetFirstEcho(float range) { return range; }
 
 // For sensor_msgs::MultiEchoLaserScan.
-bool HasEcho(const sensor_msgs::LaserEcho& echo) {
+bool HasEcho(const sensor_msgs::msg::LaserEcho& echo) {
   return !echo.echoes.empty();
 }
 
-float GetFirstEcho(const sensor_msgs::LaserEcho& echo) {
+float GetFirstEcho(const sensor_msgs::msg::LaserEcho& echo) {
   return echo.echoes[0];
 }
 
@@ -126,7 +126,7 @@ PointCloudWithIntensities LaserScanToPointCloudWithIntensities(
 
 }  // namespace
 
-sensor_msgs::PointCloud2 ToPointCloud2Message(
+sensor_msgs::msg::PointCloud2 ToPointCloud2Message(
     const int64 timestamp, const string& frame_id,
     const ::cartographer::sensor::PointCloud& point_cloud) {
   auto msg = PreparePointCloud2Message(timestamp, frame_id, point_cloud.size());
@@ -144,27 +144,13 @@ sensor_msgs::PointCloud2 ToPointCloud2Message(
 }
 
 PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::LaserScan& msg) {
+    const sensor_msgs::msg::LaserScan& msg) {
   return LaserScanToPointCloudWithIntensities(msg);
 }
 
 PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::MultiEchoLaserScan& msg) {
+    const sensor_msgs::msg::MultiEchoLaserScan& msg) {
   return LaserScanToPointCloudWithIntensities(msg);
-}
-
-PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::PointCloud2& message) {
-  pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
-  pcl::fromROSMsg(message, pcl_point_cloud);
-  PointCloudWithIntensities point_cloud;
-
-  // TODO(hrapp): How to get reflectivities from PCL?
-  for (const auto& point : pcl_point_cloud) {
-    point_cloud.points.emplace_back(point.x, point.y, point.z);
-    point_cloud.intensities.push_back(1.);
-  }
-  return point_cloud;
 }
 
 Rigid3d ToRigid3d(const geometry_msgs::msg::TransformStamped& transform) {
