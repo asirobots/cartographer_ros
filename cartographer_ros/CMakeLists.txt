@@ -117,8 +117,8 @@ if(AMENT_ENABLE_TESTING OR BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   # not sure how to put timeout back on these:
-  google_test(configuration_files_test SRCS "cartographer_ros/configuration_files_test.cc" )
-  google_test(time_conversion_test SRCS "cartographer_ros/time_conversion_test.cc")
+  google_test(configuration_files_test "cartographer_ros/configuration_files_test.cc" )
+  google_test(time_conversion_test "cartographer_ros/time_conversion_test.cc")
 endif()
 
 
