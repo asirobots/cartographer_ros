@@ -35,10 +35,26 @@ DEFINE_string(configuration_basename, "",
 namespace cartographer_ros {
 namespace {
 
+std::vector<std::string> SplitString(const std::string& text, const std::string& delims)
+{
+    std::vector<std::string> tokens;
+    std::size_t start = text.find_first_not_of(delims), end = 0;
+
+    while((end = text.find_first_of(delims, start)) != std::string::npos)
+    {
+        tokens.push_back(text.substr(start, end - start));
+        start = text.find_first_not_of(delims, end);
+    }
+    if(start != std::string::npos)
+        tokens.push_back(text.substr(start));
+
+    return tokens;
+}
+
 NodeOptions LoadOptions() {
   auto file_resolver = cartographer::common::make_unique<
       cartographer::common::ConfigurationFileResolver>(
-      std::vector<string>{FLAGS_configuration_directory});
+      SplitString(FLAGS_configuration_directory, ":"));
   const string code =
       file_resolver->GetFileContentOrDie(FLAGS_configuration_basename);
   cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
