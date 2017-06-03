@@ -47,42 +47,78 @@ constexpr char kOccupancyGridTopic[] = "map";
 constexpr char kScanMatchedPointCloudTopic[] = "scan_matched_points2";
 constexpr char kSubmapListTopic[] = "submap_list";
 constexpr char kSubmapQueryServiceName[] = "submap_query";
+constexpr char kStartTrajectoryServiceName[] = "start_trajectory";
+constexpr char kWriteAssetsServiceName[] = "write_assets";
 
 // Wires up ROS topics to SLAM.
 class Node {
  public:
-  Node(const NodeOptions& options, tf2_ros::Buffer* tf_buffer);
+  Node(const NodeOptions& node_options, tf2_ros::Buffer* tf_buffer);
   ~Node();
 
   Node(const Node&) = delete;
   Node& operator=(const Node&) = delete;
 
-  void Initialize();
+  // Finishes all yet active trajectories.
+  void FinishAllTrajectories();
 
+  void StartTrajectoryWithDefaultTopics(const TrajectoryOptions& options);
   rclcpp::node::Node::SharedPtr node_handle();
   MapBuilderBridge* map_builder_bridge();
 
  private:
-  void PublishSubmapList();
-  void PublishTrajectoryStates();
+  bool HandleSubmapQuery(
+      cartographer_ros_msgs::SubmapQuery::Request& request,
+      cartographer_ros_msgs::SubmapQuery::Response& response);
+  bool HandleStartTrajectory(
+      cartographer_ros_msgs::StartTrajectory::Request& request,
+      cartographer_ros_msgs::StartTrajectory::Response& response);
+  bool HandleFinishTrajectory(
+      cartographer_ros_msgs::FinishTrajectory::Request& request,
+      cartographer_ros_msgs::FinishTrajectory::Response& response);
+  bool HandleWriteAssets(
+      cartographer_ros_msgs::WriteAssets::Request& request,
+      cartographer_ros_msgs::WriteAssets::Response& response);
+  int AddTrajectory(const TrajectoryOptions& options,
+                    const cartographer_ros_msgs::SensorTopics& topics);
+  void LaunchSubscribers(const TrajectoryOptions& options,
+                         const cartographer_ros_msgs::SensorTopics& topics,
+                         int trajectory_id);
+  void PublishSubmapList(const ::ros::WallTimerEvent& timer_event);
+  void PublishTrajectoryStates(const ::ros::WallTimerEvent& timer_event);
   void SpinOccupancyGridThreadForever();
+  bool ValidateTrajectoryOptions(const TrajectoryOptions& options);
+  bool ValidateTopicName(const ::cartographer_ros_msgs::SensorTopics& topics,
+                         const TrajectoryOptions& options);
 
-  const NodeOptions options_;
+  const NodeOptions node_options_;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   cartographer::common::Mutex mutex_;
   MapBuilderBridge map_builder_bridge_ GUARDED_BY(mutex_);
-  int trajectory_id_ = -1;
-  std::unordered_set<string> expected_sensor_ids_;
 
   ::rclcpp::node::Node::SharedPtr node_handle_;
   ::rclcpp::publisher::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
   ::rclcpp::service::Service<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr submap_query_server_;
   ::rclcpp::publisher::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr scan_matched_point_cloud_publisher_;
+  ::ros::NodeHandle node_handle_;
+  ::ros::Publisher submap_list_publisher_;
+  // These ros::ServiceServers need to live for the lifetime of the node.
+  std::vector<::ros::ServiceServer> service_servers_;
+  ::ros::Publisher scan_matched_point_cloud_publisher_;
   cartographer::common::Time last_scan_matched_point_cloud_time_ =
       cartographer::common::Time::min();
 
+  // These are keyed with 'trajectory_id'.
+  std::unordered_map<int, ::ros::Subscriber> laser_scan_subscribers_;
+  std::unordered_map<int, ::ros::Subscriber> multi_echo_laser_scan_subscribers_;
+  std::unordered_map<int, ::ros::Subscriber> odom_subscribers_;
+  std::unordered_map<int, ::ros::Subscriber> imu_subscribers_;
+  std::unordered_map<int, std::vector<::ros::Subscriber>>
+      point_cloud_subscribers_;
+  std::unordered_map<int, bool> is_active_trajectory_ GUARDED_BY(mutex_);
+  ::ros::Publisher occupancy_grid_publisher_;
   ::rclcpp::publisher::Publisher<::nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
   std::thread occupancy_grid_thread_;
   bool terminating_ = false GUARDED_BY(mutex_);

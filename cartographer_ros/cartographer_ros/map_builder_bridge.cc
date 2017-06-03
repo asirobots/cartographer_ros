@@ -24,26 +24,29 @@
 
 namespace cartographer_ros {
 
-MapBuilderBridge::MapBuilderBridge(const NodeOptions& options,
+MapBuilderBridge::MapBuilderBridge(const NodeOptions& node_options,
                                    tf2_ros::Buffer* const tf_buffer)
-    : options_(options),
-      map_builder_(options.map_builder_options, &constant_data_),
-      tf_buffer_(tf_buffer) {
+    : node_options_(node_options),
+      map_builder_(node_options.map_builder_options),
+      tf_buffer_(tf_buffer) {}
   last_time.sec = -1;
-}
 
 int MapBuilderBridge::AddTrajectory(
     const std::unordered_set<string>& expected_sensor_ids,
-    const string& tracking_frame) {
-  const int trajectory_id =
-      map_builder_.AddTrajectoryBuilder(expected_sensor_ids);
+    const TrajectoryOptions& trajectory_options) {
+  const int trajectory_id = map_builder_.AddTrajectoryBuilder(
+      expected_sensor_ids, trajectory_options.trajectory_builder_options);
   LOG(INFO) << "Added trajectory with ID '" << trajectory_id << "'.";
 
   CHECK_EQ(sensor_bridges_.count(trajectory_id), 0);
   sensor_bridges_[trajectory_id] =
       cartographer::common::make_unique<SensorBridge>(
-          tracking_frame, options_.lookup_transform_timeout_sec, tf_buffer_,
+          trajectory_options.tracking_frame,
+          node_options_.lookup_transform_timeout_sec, tf_buffer_,
           map_builder_.GetTrajectoryBuilder(trajectory_id));
+  auto emplace_result =
+      trajectory_options_.emplace(trajectory_id, trajectory_options);
+  CHECK(emplace_result.second == true);
   return trajectory_id;
 }
 
@@ -57,13 +60,36 @@ void MapBuilderBridge::FinishTrajectory(const int trajectory_id) {
 }
 
 void MapBuilderBridge::WriteAssets(const string& stem) {
-  const auto trajectory_nodes =
-      map_builder_.sparse_pose_graph()->GetTrajectoryNodes();
+  std::vector<::cartographer::mapping::TrajectoryNode> trajectory_nodes;
+  for (const auto& single_trajectory :
+       map_builder_.sparse_pose_graph()->GetTrajectoryNodes()) {
+    trajectory_nodes.insert(trajectory_nodes.end(), single_trajectory.begin(),
+                            single_trajectory.end());
+  }
   if (trajectory_nodes.empty()) {
     LOG(WARNING) << "No data was collected and no assets will be written.";
   } else {
     LOG(INFO) << "Writing assets with stem '" << stem << "'...";
-    cartographer_ros::WriteAssets(trajectory_nodes, options_, stem);
+    // TODO(yutakaoka): Add multi-trajectory support.
+    CHECK_EQ(trajectory_options_.count(0), 1);
+    if (node_options_.map_builder_options.use_trajectory_builder_2d()) {
+      Write2DAssets(
+          trajectory_nodes, node_options_.map_frame,
+          trajectory_options_[0]
+              .trajectory_builder_options.trajectory_builder_2d_options()
+              .submaps_options(),
+          stem);
+    }
+
+    if (node_options_.map_builder_options.use_trajectory_builder_3d()) {
+      Write3DAssets(
+          trajectory_nodes,
+          trajectory_options_[0]
+              .trajectory_builder_options.trajectory_builder_3d_options()
+              .submaps_options()
+              .high_resolution(),
+          stem);
+    }
   }
 }
 
@@ -88,22 +114,21 @@ void MapBuilderBridge::HandleSubmapQuery(
       cartographer::transform::ToRigid3(response_proto.slice_pose()));
 }
 
-cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
-  cartographer_ros_msgs::msg::SubmapList submap_list;
+cartographer_ros_msgs::SubmapList MapBuilderBridge::GetSubmapList() {
+  cartographer_ros_msgs::SubmapList submap_list;
+  submap_list.header.frame_id = node_options_.map_frame;
   submap_list.header.stamp = last_time.sec < 0 ? rclcpp::Time::now() : last_time;
-
-  submap_list.header.frame_id = options_.map_frame;
   for (int trajectory_id = 0;
        trajectory_id < map_builder_.num_trajectory_builders();
        ++trajectory_id) {
+    const std::vector<cartographer::transform::Rigid3d> submap_transforms =
+        map_builder_.sparse_pose_graph()->GetSubmapTransforms(trajectory_id);
     const cartographer::mapping::Submaps* submaps =
         map_builder_.GetTrajectoryBuilder(trajectory_id)->submaps();
-    const std::vector<cartographer::transform::Rigid3d> submap_transforms =
-        map_builder_.sparse_pose_graph()->GetSubmapTransforms(*submaps);
-    CHECK_EQ(submap_transforms.size(), submaps->size());
+    CHECK_LE(submap_transforms.size(), submaps->size());
 
-    cartographer_ros_msgs::msg::TrajectorySubmapList trajectory_submap_list;
-    for (int submap_index = 0; submap_index != submaps->size();
+    cartographer_ros_msgs::TrajectorySubmapList trajectory_submap_list;
+    for (size_t submap_index = 0; submap_index != submap_transforms.size();
          ++submap_index) {
       cartographer_ros_msgs::msg::SubmapEntry submap_entry;
       submap_entry.submap_version = submaps->Get(submap_index)->num_range_data;
@@ -117,14 +142,25 @@ cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
 
 std::unique_ptr<nav_msgs::msg::OccupancyGrid>
 MapBuilderBridge::BuildOccupancyGrid() {
-  const auto trajectory_nodes =
-      map_builder_.sparse_pose_graph()->GetTrajectoryNodes();
-  std::unique_ptr<nav_msgs::msg::OccupancyGrid> occupancy_grid;
+  CHECK(node_options_.map_builder_options.use_trajectory_builder_2d())
+      << "Publishing OccupancyGrids for 3D data is not yet supported";
+  std::vector<::cartographer::mapping::TrajectoryNode> trajectory_nodes;
+  for (const auto& single_trajectory :
+       map_builder_.sparse_pose_graph()->GetTrajectoryNodes()) {
+    trajectory_nodes.insert(trajectory_nodes.end(), single_trajectory.begin(),
+                            single_trajectory.end());
+  }
+  std::unique_ptr<nav_msgs::OccupancyGrid> occupancy_grid;
   if (!trajectory_nodes.empty()) {
     occupancy_grid =
-      cartographer::common::make_unique<nav_msgs::msg::OccupancyGrid>();
-    cartographer_ros::BuildOccupancyGrid(trajectory_nodes, options_,
-                                         occupancy_grid.get());
+        cartographer::common::make_unique<nav_msgs::OccupancyGrid>();
+    CHECK_EQ(trajectory_options_.count(0), 1);
+    BuildOccupancyGrid2D(
+        trajectory_nodes, node_options_.map_frame,
+        trajectory_options_[0]
+            .trajectory_builder_options.trajectory_builder_2d_options()
+            .submaps_options(),
+        occupancy_grid.get());
   }
   return occupancy_grid;
 }
@@ -144,12 +180,15 @@ MapBuilderBridge::GetTrajectoryStates() {
       continue;
     }
 
+    CHECK_EQ(trajectory_options_.count(trajectory_id), 1);
     trajectory_states[trajectory_id] = {
         pose_estimate,
         map_builder_.sparse_pose_graph()->GetLocalToGlobalTransform(
-            *trajectory_builder->submaps()),
-        sensor_bridge.tf_bridge().LookupToTracking(pose_estimate.time,
-                                                   options_.published_frame)};
+            trajectory_id),
+        sensor_bridge.tf_bridge().LookupToTracking(
+            pose_estimate.time,
+            trajectory_options_[trajectory_id].published_frame),
+        trajectory_options_[trajectory_id]};
   }
   return trajectory_states;
 }

@@ -20,6 +20,7 @@
 #include "cartographer/common/configuration_file_resolver.h"
 #include "cartographer/common/make_unique.h"
 #include "cartographer_ros/node.h"
+#include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "tf2_ros/transform_listener.h"
 #include "asiframework_msgs/msg/asi_time.hpp"
@@ -52,6 +53,7 @@ std::vector<std::string> SplitString(const std::string& text, const std::string&
 }
 
 NodeOptions LoadOptions() {
+std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
   auto file_resolver = cartographer::common::make_unique<
       cartographer::common::ConfigurationFileResolver>(
       SplitString(FLAGS_configuration_directory, ":"));
@@ -60,7 +62,8 @@ NodeOptions LoadOptions() {
   cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
       code, std::move(file_resolver));
 
-  return CreateNodeOptions(&lua_parameter_dictionary);
+  return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
+                         CreateTrajectoryOptions(&lua_parameter_dictionary));
 }
 
 void Run() {
@@ -68,11 +71,12 @@ void Run() {
   constexpr double kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
   tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
   tf2_ros::TransformListener tf(tf_buffer);
-  Node node(options, &tf_buffer);
-  node.Initialize();
+  NodeOptions node_options;
+  TrajectoryOptions trajectory_options;
+  std::tie(node_options, trajectory_options) = LoadOptions();
 
-  int trajectory_id = -1;
-  std::unordered_set<string> expected_sensor_ids;
+  Node node(node_options, &tf_buffer);
+  node.StartTrajectoryWithDefaultTopics(trajectory_options);
 
   auto clock_subscriber = node.node_handle()->create_subscription<asiframework_msgs::msg::AsiTime>("asi_clock",
     [&](asiframework_msgs::msg::AsiTime::SharedPtr msg) {
@@ -229,6 +233,7 @@ void Run() {
   rclcpp::spin(node.node_handle());
 
   node.map_builder_bridge()->FinishTrajectory(trajectory_id);
+  node.FinishAllTrajectories();
 }
 
 }  // namespace

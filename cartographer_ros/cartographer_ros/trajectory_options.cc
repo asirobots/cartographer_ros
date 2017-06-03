@@ -20,24 +20,26 @@
 
 namespace cartographer_ros {
 
-NodeOptions CreateNodeOptions(
+TrajectoryOptions CreateTrajectoryOptions(
     ::cartographer::common::LuaParameterDictionary* const
         lua_parameter_dictionary) {
-  NodeOptions options;
-  options.map_builder_options =
-      ::cartographer::mapping::CreateMapBuilderOptions(
-          lua_parameter_dictionary->GetDictionary("map_builder").get());
-  options.map_frame = lua_parameter_dictionary->GetString("map_frame");
-  options.lookup_transform_timeout_sec =
-      lua_parameter_dictionary->GetDouble("lookup_transform_timeout_sec");
-  options.submap_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
-  options.pose_publish_period_sec =
-      lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
-
-<<<<<<< HEAD
-  options.publish_asi_pose =
-    lua_parameter_dictionary->GetBool("publish_asi_pose");
+  TrajectoryOptions options;
+  options.trajectory_builder_options =
+      ::cartographer::mapping::CreateTrajectoryBuilderOptions(
+          lua_parameter_dictionary->GetDictionary("trajectory_builder").get());
+  options.tracking_frame =
+      lua_parameter_dictionary->GetString("tracking_frame");
+  options.published_frame =
+      lua_parameter_dictionary->GetString("published_frame");
+  options.odom_frame = lua_parameter_dictionary->GetString("odom_frame");
+  options.provide_odom_frame =
+      lua_parameter_dictionary->GetBool("provide_odom_frame");
+  options.use_odometry = lua_parameter_dictionary->GetBool("use_odometry");
+  options.use_laser_scan = lua_parameter_dictionary->GetBool("use_laser_scan");
+  options.use_multi_echo_laser_scan =
+      lua_parameter_dictionary->GetBool("use_multi_echo_laser_scan");
+  options.num_point_clouds =
+      lua_parameter_dictionary->GetNonNegativeInt("num_point_clouds");
 
   CHECK_EQ(options.use_laser_scan + options.use_multi_echo_laser_scan +
                (options.num_point_clouds > 0),
@@ -46,13 +48,6 @@ NodeOptions CreateNodeOptions(
          "'use_multi_echo_laser_scan' and 'num_point_clouds' are "
          "mutually exclusive, but one is required.";
 
-  if (options.map_builder_options.use_trajectory_builder_2d()) {
-    // Using point clouds is only supported in 3D.
-    CHECK_EQ(options.num_point_clouds, 0);
-  }
-=======
->>>>>>> master
   return options;
 }
-
 }  // namespace cartographer_ros
