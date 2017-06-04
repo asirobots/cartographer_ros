@@ -34,8 +34,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SubmapList.msg"
   "msg/TrajectorySubmapList.msg"
   "msg/SubmapEntry.msg"
+  "msg/SensorTopics.msg"
+  "msg/TrajectoryOptions.msg"
+  "srv/StartTrajectory.srv"
   "srv/FinishTrajectory.srv"
   "srv/SubmapQuery.srv"
+  "srv/WriteAssets.srv"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
   ADD_LINTER_TESTS
 )

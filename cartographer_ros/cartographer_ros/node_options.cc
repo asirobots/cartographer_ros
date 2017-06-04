@@ -34,24 +34,9 @@ NodeOptions CreateNodeOptions(
       lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
   options.pose_publish_period_sec =
       lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
-
-<<<<<<< HEAD
   options.publish_asi_pose =
-    lua_parameter_dictionary->GetBool("publish_asi_pose");
+      lua_parameter_dictionary->GetBool("publish_asi_pose");
 
-  CHECK_EQ(options.use_laser_scan + options.use_multi_echo_laser_scan +
-               (options.num_point_clouds > 0),
-           1)
-      << "Configuration error: 'use_laser_scan', "
-         "'use_multi_echo_laser_scan' and 'num_point_clouds' are "
-         "mutually exclusive, but one is required.";
-
-  if (options.map_builder_options.use_trajectory_builder_2d()) {
-    // Using point clouds is only supported in 3D.
-    CHECK_EQ(options.num_point_clouds, 0);
-  }
-=======
->>>>>>> master
   return options;
 }
 

@@ -31,7 +31,7 @@ class ScopedRosLogSink : public ::google::LogSink {
   ~ScopedRosLogSink() override;
 
   void send(::google::LogSeverity severity, const char* filename,
-            const char* base_filename, int line, const struct std::tm* tm_time,
+            const char* base_filename, int line, const std::tm* const tm_time,
             const char* message, size_t message_len) override;
 
   void WaitTillSent() override;

@@ -56,21 +56,21 @@ sensor_msgs::msg::PointCloud2 PreparePointCloud2Message(const int64 timestamp,
   msg.fields.resize(3);
   msg.fields[0].name = "x";
   msg.fields[0].offset = 0;
-  msg.fields[0].datatype = sensor_msgs::PointField::FLOAT32;
+  msg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
   msg.fields[0].count = 1;
   msg.fields[1].name = "y";
   msg.fields[1].offset = 4;
-  msg.fields[1].datatype = sensor_msgs::PointField::FLOAT32;
+  msg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
   msg.fields[1].count = 1;
   msg.fields[2].name = "z";
   msg.fields[2].offset = 8;
-  msg.fields[2].datatype = sensor_msgs::PointField::FLOAT32;
+  msg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
   msg.fields[2].count = 1;
   msg.is_bigendian = false;
   msg.point_step = 16;
   msg.row_step = 16 * msg.width;
   msg.is_dense = true;
-  msg.data.resize(16 * num_points);
+  msg.data.resize(16U * num_points);
   return msg;
 }
 
@@ -124,7 +124,7 @@ PointCloudWithIntensities LaserScanToPointCloudWithIntensities(
   return point_cloud;
 }
 
-bool PointCloud2HasField(const sensor_msgs::PointCloud2& pc2,
+bool PointCloud2HasField(const sensor_msgs::msg::PointCloud2& pc2,
                          const std::string& field_name) {
   for (const auto& field : pc2.fields) {
     if (field.name == field_name) {
@@ -164,7 +164,7 @@ PointCloudWithIntensities ToPointCloudWithIntensities(
 }
 
 PointCloudWithIntensities ToPointCloudWithIntensities(
-    const sensor_msgs::PointCloud2& message) {
+    const sensor_msgs::msg::PointCloud2& message) {
   PointCloudWithIntensities point_cloud;
   // We check for intensity field here to avoid run-time warnings if we pass in
   // a PointCloud2 without intensity.
@@ -189,7 +189,7 @@ PointCloudWithIntensities ToPointCloudWithIntensities(
   return point_cloud;
 }
 
-Rigid3d ToRigid3d(const geometry_msgs::TransformStamped& transform) {
+Rigid3d ToRigid3d(const geometry_msgs::msg::TransformStamped& transform) {
   return Rigid3d(ToEigen(transform.transform.translation),
                  ToEigen(transform.transform.rotation));
 }

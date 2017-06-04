@@ -23,7 +23,6 @@
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "tf2_ros/transform_listener.h"
-#include "asiframework_msgs/msg/asi_time.hpp"
 
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
@@ -34,7 +33,6 @@ DEFINE_string(configuration_basename, "",
               "configuration file.");
 
 namespace cartographer_ros {
-namespace {
 
 std::vector<std::string> SplitString(const std::string& text, const std::string& delims)
 {
@@ -52,7 +50,6 @@ std::vector<std::string> SplitString(const std::string& text, const std::string&
     return tokens;
 }
 
-NodeOptions LoadOptions() {
 std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
   auto file_resolver = cartographer::common::make_unique<
       cartographer::common::ConfigurationFileResolver>(
@@ -78,165 +75,11 @@ void Run() {
   Node node(node_options, &tf_buffer);
   node.StartTrajectoryWithDefaultTopics(trajectory_options);
 
-  auto clock_subscriber = node.node_handle()->create_subscription<asiframework_msgs::msg::AsiTime>("asi_clock",
-    [&](asiframework_msgs::msg::AsiTime::SharedPtr msg) {
-        node.map_builder_bridge()->last_time = msg->time;
-    });
-
-  constexpr char lean_pose_topic[] = "Vehicle_Pose";
-  auto lean_odometry_subscriber = node.node_handle()->create_subscription<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(lean_pose_topic,
-    [&](localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped::ConstSharedPtr lean_msg) {
-
-        auto psn = lean_msg->pose.position;
-        auto pso = lean_msg->pose.orientation;
-
-        if (std::isnan(psn.x) || std::isnan(psn.y) || std::isnan(psn.z)) return;
-        if (std::isnan(pso.x) || std::isnan(pso.y) || std::isnan(pso.z) || std::isnan(pso.w)) return;
-
-        auto msg = std::make_shared<nav_msgs::msg::Odometry>();
-        msg->header = lean_msg->header;
-        msg->child_frame_id = lean_msg->child_frame_id;
-        msg->pose.pose.position = psn;
-        msg->pose.pose.orientation = pso;
-
-        // we don't need the covariance (and 4 of the 6 position covs don't work), but as a reference:
-        //auto pc = lean_msg->position_covariance;
-        //auto oc = lean_msg->orientation_covariance;
-        //msg->pose.covariance = {0};
-        //msg->pose.covariance[0] = pc[0];
-        //msg->pose.covariance[1] = msg->pose.covariance[6] = pc[1];
-        //msg->pose.covariance[2] = msg->pose.covariance[12] = pc[2];
-        //msg->pose.covariance[7] = pc[3];
-        //msg->pose.covariance[4] = msg->pose.covariance[13] = pc[4];
-        //msg->pose.covariance[14] = pc[5];
-        //msg->pose.covariance[21] = oc[0];
-        //msg->pose.covariance[22] = msg->pose.covariance[27] = oc[1];
-        //msg->pose.covariance[23] = msg->pose.covariance[33] = oc[2];
-        //msg->pose.covariance[28] = oc[3];
-        //msg->pose.covariance[29] = msg->pose.covariance[34] = oc[4];
-        //msg->pose.covariance[35] = oc[5];
-
-        // msg.twist not used either
-
-        node.map_builder_bridge()
-          ->sensor_bridge(trajectory_id)
-          ->HandleOdometryMessage(lean_pose_topic, msg);
-    }, rmw_qos_profile_default);
-  expected_sensor_ids.insert(lean_pose_topic);
-
-
-  // For 2D SLAM, subscribe to exactly one horizontal laser.
-  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_subscriber;
-  if (options.use_laser_scan) {
-    laser_scan_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::LaserScan>(
-                   kLaserScanTopic,
-                   [&](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
-                     node.map_builder_bridge()
-                     ->sensor_bridge(trajectory_id)
-                     ->HandleLaserScanMessage(kLaserScanTopic, msg);
-                 }, rmw_qos_profile_default);
-    expected_sensor_ids.insert(kLaserScanTopic);
-  }
-
-  rclcpp::Subscription<sensor_msgs::msg::MultiEchoLaserScan>::SharedPtr multi_echo_laser_scan_subscriber;
-  if (options.use_multi_echo_laser_scan) {
-    multi_echo_laser_scan_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::MultiEchoLaserScan>(
-                   kMultiEchoLaserScanTopic,
-                   [&](sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
-                     node.map_builder_bridge()
-                     ->sensor_bridge(trajectory_id)
-                     ->HandleMultiEchoLaserScanMessage(kMultiEchoLaserScanTopic, msg);
-                 }, rmw_qos_profile_default);
-    expected_sensor_ids.insert(kMultiEchoLaserScanTopic);
-  }
-
-  // For 3D SLAM, subscribe to all point clouds topics.
-  std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> point_cloud_subscribers;
-  if (options.num_point_clouds > 0) {
-    for (int i = 0; i < options.num_point_clouds; ++i) {
-      string topic = kPointCloud2Topic;
-      if (options.num_point_clouds > 1) {
-        topic += "_" + std::to_string(i + 1);
-      }
-      point_cloud_subscribers.push_back(node.node_handle()->create_subscription<sensor_msgs::msg::PointCloud2>(
-          topic,
-	  [&, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
-                node.map_builder_bridge()
-                    ->sensor_bridge(trajectory_id)
-                    ->HandlePointCloud2Message(topic, msg);
-	  }, rmw_qos_profile_default));
-      expected_sensor_ids.insert(topic);
-    }
-  }
-
-  // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
-  // required.
-  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscriber;
-  if (options.map_builder_options.use_trajectory_builder_3d() ||
-      (options.map_builder_options.use_trajectory_builder_2d() &&
-       options.map_builder_options.trajectory_builder_2d_options()
-           .use_imu_data())) {
-    imu_subscriber = node.node_handle()->create_subscription<sensor_msgs::msg::Imu>(
-                  kImuTopic,
-                  [&](sensor_msgs::msg::Imu::ConstSharedPtr msg) {
-                        node.map_builder_bridge()
-                        ->sensor_bridge(trajectory_id)
-                        ->HandleImuMessage(kImuTopic, msg);
-                  }, rmw_qos_profile_default);
-    expected_sensor_ids.insert(kImuTopic);
-  }
-
-  // For both 2D and 3D SLAM, odometry is optional.
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_subscriber;
-  if (options.use_odometry) {
-    odometry_subscriber = node.node_handle()->create_subscription<nav_msgs::msg::Odometry>(
-        kOdometryTopic,
-        [&](nav_msgs::msg::Odometry::ConstSharedPtr msg) {
-              node.map_builder_bridge()
-                  ->sensor_bridge(trajectory_id)
-                  ->HandleOdometryMessage(kOdometryTopic, msg);
-        }, rmw_qos_profile_default);
-    expected_sensor_ids.insert(kOdometryTopic);
-  }
-
-  trajectory_id = node.map_builder_bridge()->AddTrajectory(
-      expected_sensor_ids, options.tracking_frame);
-
-  auto finish_trajectory_server =
-      node.node_handle()->create_service<::cartographer_ros_msgs::srv::FinishTrajectory>(
-          kFinishTrajectoryServiceName,
-              [&](const std::shared_ptr<::rmw_request_id_t> request_id,
-                  const ::cartographer_ros_msgs::srv::FinishTrajectory::Request::SharedPtr request,
-                  const ::cartographer_ros_msgs::srv::FinishTrajectory::Response::SharedPtr response) {
-                  (void)request_id;
-                  (void)response;
-                const int previous_trajectory_id = trajectory_id;
-                trajectory_id = node.map_builder_bridge()->AddTrajectory(
-                    expected_sensor_ids, options.tracking_frame);
-                node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
-                node.map_builder_bridge()->WriteAssets(request->stem);
-                return true;
-              });
-
-  finish_trajectory_server = node.node_handle()->create_service<::cartographer_ros_msgs::srv::FinishTrajectory>(kFinishTrajectoryServiceName,
-        [&] (
-             const std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Request> request,
-             std::shared_ptr<::cartographer_ros_msgs::srv::FinishTrajectory::Response> response)
-        {
-          (void)response;
-          const int previous_trajectory_id = trajectory_id;
-          trajectory_id = node.map_builder_bridge()->AddTrajectory(expected_sensor_ids, options.tracking_frame);
-          node.map_builder_bridge()->FinishTrajectory(previous_trajectory_id);
-          node.map_builder_bridge()->WriteAssets(request->stem);
-        });
-
   rclcpp::spin(node.node_handle());
 
-  node.map_builder_bridge()->FinishTrajectory(trajectory_id);
   node.FinishAllTrajectories();
 }
 
-}  // namespace
 }  // namespace cartographer_ros
 
 int main(int argc, char** argv) {

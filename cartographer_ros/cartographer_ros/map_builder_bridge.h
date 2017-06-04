@@ -30,8 +30,7 @@
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
-#include <rclcpp/rclcpp.hpp>
-#include "cartographer_ros/trajectory_options.h"
+  #include <rclcpp/rclcpp.hpp>
 
 namespace cartographer_ros {
 
