@@ -32,8 +32,6 @@ struct NodeOptions {
   double lookup_transform_timeout_sec;
   double submap_publish_period_sec;
   double pose_publish_period_sec;
-
-  bool publish_asi_pose;
 };
 
 NodeOptions CreateNodeOptions(

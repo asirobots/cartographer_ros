@@ -34,8 +34,6 @@ NodeOptions CreateNodeOptions(
       lua_parameter_dictionary->GetDouble("submap_publish_period_sec");
   options.pose_publish_period_sec =
       lua_parameter_dictionary->GetDouble("pose_publish_period_sec");
-  options.publish_asi_pose =
-      lua_parameter_dictionary->GetBool("publish_asi_pose");
 
   return options;
 }
