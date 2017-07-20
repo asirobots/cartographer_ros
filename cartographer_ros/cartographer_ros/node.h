@@ -128,6 +128,7 @@ class Node {
   // We have to keep the timer handles of ::ros::WallTimers around, otherwise
   // they do not fire.
   std::vector<::rclcpp::TimerBase::SharedPtr> wall_timers_;
+  std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> lean_pose_publisher;
   rclcpp::SubscriptionBase::SharedPtr asi_clock_subscriber_;
   std::unordered_map<int, rclcpp::SubscriptionBase::SharedPtr> asi_pose_subscribers_;
 };
