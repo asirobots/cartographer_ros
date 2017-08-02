@@ -22,7 +22,7 @@
 #include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/port.h"
 #include "cartographer_ros/sensor_bridge.h"
-#include "cartographer_ros_msgs/TrajectoryOptions.h"
+#include "cartographer_ros_msgs/msg/trajectory_options.hpp"
 
 namespace cartographer_ros {
 
@@ -44,11 +44,11 @@ TrajectoryOptions CreateTrajectoryOptions(
     ::cartographer::common::LuaParameterDictionary* lua_parameter_dictionary);
 
 // Try to convert 'msg' into 'options'. Returns false on failure.
-bool FromRosMessage(const cartographer_ros_msgs::TrajectoryOptions& msg,
+bool FromRosMessage(const cartographer_ros_msgs::msg::TrajectoryOptions& msg,
                     TrajectoryOptions* options);
 
 // Converts 'trajectory_options' into a ROS message.
-cartographer_ros_msgs::TrajectoryOptions ToRosMessage(
+cartographer_ros_msgs::msg::TrajectoryOptions::SharedPtr ToRosMessage(
     const TrajectoryOptions& trajectory_options);
 
 }  // namespace cartographer_ros

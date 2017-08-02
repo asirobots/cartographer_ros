@@ -22,6 +22,7 @@
 #include "cartographer/common/port.h"
 #include "cartographer/sensor/point_cloud.h"
 #include "cartographer/transform/rigid_transform.h"
+#include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "geometry_msgs/msg/transform.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
@@ -54,7 +55,7 @@ namespace pcl_conversions {
     void toPCL(const std::vector<sensor_msgs::msg::PointField> &pfs, std::vector<pcl::PCLPointField> &pcl_pfs)
     {
       pcl_pfs.resize(pfs.size());
-      std::vector<sensor_msgs::msg::PointField>::const_iterator it = pfs.begin();
+      auto it = pfs.begin();
       int i = 0;
       for(; it != pfs.end(); ++it, ++i) {
         toPCL(*(it), pcl_pfs[i]);
@@ -114,7 +115,7 @@ geometry_msgs::msg::Transform ToGeometryMsgTransform(
 geometry_msgs::msg::Pose ToGeometryMsgPose(
     const ::cartographer::transform::Rigid3d& rigid3d);
 
-geometry_msgs::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d);
+geometry_msgs::msg::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d);
 
 ::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
     const sensor_msgs::msg::LaserScan& msg);

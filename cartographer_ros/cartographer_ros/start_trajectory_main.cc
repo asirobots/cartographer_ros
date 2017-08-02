@@ -24,10 +24,10 @@
 #include "cartographer_ros/node_constants.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "cartographer_ros/trajectory_options.h"
-#include "cartographer_ros_msgs/StartTrajectory.h"
-#include "cartographer_ros_msgs/TrajectoryOptions.h"
+#include "cartographer_ros_msgs/srv/start_trajectory.hpp"
+#include "cartographer_ros_msgs/msg/trajectory_options.hpp"
 #include "gflags/gflags.h"
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
@@ -53,23 +53,28 @@ TrajectoryOptions LoadOptions() {
 }
 
 bool Run() {
-  ros::NodeHandle node_handle;
-  ros::ServiceClient client =
-      node_handle.serviceClient<cartographer_ros_msgs::StartTrajectory>(
+  rclcpp::node::Node node_handle("start_trajectory_node");
+  auto client = node_handle.create_client<cartographer_ros_msgs::srv::StartTrajectory>(
           kStartTrajectoryServiceName);
-  cartographer_ros_msgs::StartTrajectory srv;
-  srv.request.options = ToRosMessage(LoadOptions());
-  srv.request.topics.laser_scan_topic = kLaserScanTopic;
-  srv.request.topics.multi_echo_laser_scan_topic = kMultiEchoLaserScanTopic;
-  srv.request.topics.point_cloud2_topic = kPointCloud2Topic;
-  srv.request.topics.imu_topic = kImuTopic;
-  srv.request.topics.odometry_topic = kOdometryTopic;
+  auto srv = std::make_shared<cartographer_ros_msgs::srv::StartTrajectory::Request>();
+  srv->options = *ToRosMessage(LoadOptions());
+  srv->topics.laser_scan_topic = kLaserScanTopic;
+  srv->topics.multi_echo_laser_scan_topic = kMultiEchoLaserScanTopic;
+  srv->topics.point_cloud2_topic = kPointCloud2Topic;
+  srv->topics.imu_topic = kImuTopic;
+  srv->topics.odometry_topic = kOdometryTopic;
 
-  if (!client.call(srv)) {
+  if (!client->wait_for_service(std::chrono::seconds(3))) {
+    LOG(ERROR) << "Error connecting trajectory service.";
+    return false;
+  }
+  auto future = client->async_send_request(srv);
+  auto status = future.wait_for(std::chrono::seconds(7));
+  if (status != std::future_status::ready) {
     LOG(ERROR) << "Error starting trajectory.";
     return false;
   }
-  LOG(INFO) << "Started trajectory " << srv.response.trajectory_id;
+  LOG(INFO) << "Started trajectory " << future.get()->trajectory_id;
   return true;
 }
 
@@ -90,11 +95,10 @@ int main(int argc, char** argv) {
   CHECK(!FLAGS_configuration_basename.empty())
       << "-configuration_basename is missing.";
 
-  ::ros::init(argc, argv, "cartographer_start_trajectory");
-  ::ros::start();
+  ::rclcpp::init(argc, argv);
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   int exit_code = cartographer_ros::Run() ? 0 : 1;
-  ::ros::shutdown();
+  ::rclcpp::shutdown();
   return exit_code;
 }

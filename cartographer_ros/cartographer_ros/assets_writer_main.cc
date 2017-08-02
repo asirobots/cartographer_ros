@@ -177,19 +177,6 @@ void Run(const string& pose_graph_filename,
   const string tracking_frame =
       lua_parameter_dictionary.GetString("tracking_frame");
   do {
-<<<<<<< HEAD
-    rosbag::Bag bag;
-    bag.open(bag_filename, rosbag::bagmode::Read);
-    rosbag::View view(bag);
-    const ::builtin_interfaces::msg::Time begin_time = view.getBeginTime();
-    const double duration_in_seconds = (view.getEndTime() - begin_time).toSec();
-
-    for (const rosbag::MessageInstance& message : view) {
-      if (message.isType<sensor_msgs::PointCloud2>()) {
-        HandleMessage(*message.instantiate<sensor_msgs::PointCloud2>(),
-                      tracking_frame, tf_buffer,
-                      *transform_interpolation_buffer, pipeline);
-=======
     for (size_t trajectory_id = 0; trajectory_id < bag_filenames.size();
          ++trajectory_id) {
       const carto::mapping::proto::Trajectory& trajectory_proto =
@@ -203,7 +190,6 @@ void Run(const string& pose_graph_filename,
       if (FLAGS_use_bag_transforms) {
         LOG(INFO) << "Pre-loading transforms from bag...";
         ReadTransformsFromBag(bag_filename, &tf_buffer);
->>>>>>> master
       }
 
       if (!urdf_filename.empty()) {

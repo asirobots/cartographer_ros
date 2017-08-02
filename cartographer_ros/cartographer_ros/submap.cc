@@ -20,39 +20,48 @@
 #include "cartographer/common/port.h"
 #include "cartographer/transform/transform.h"
 #include "cartographer_ros/msg_conversion.h"
-#include "cartographer_ros_msgs/SubmapQuery.h"
 
 namespace cartographer_ros {
 
 std::unique_ptr<SubmapTexture> FetchSubmapTexture(
     const ::cartographer::mapping::SubmapId& submap_id,
-    ros::ServiceClient* client) {
-  ::cartographer_ros_msgs::SubmapQuery srv;
-  srv.request.trajectory_id = submap_id.trajectory_id;
-  srv.request.submap_index = submap_id.submap_index;
-  if (!client->call(srv)) {
+    ::rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client) {
+
+  if (!client->wait_for_service(std::chrono::seconds(3))) {
+    LOG(ERROR) << "Error connecting trajectory service.";
     return nullptr;
   }
-  std::string compressed_cells(srv.response.cells.begin(),
-                               srv.response.cells.end());
+
+  auto srv = std::make_shared<cartographer_ros_msgs::srv::SubmapQuery::Request>();
+  srv->trajectory_id = submap_id.trajectory_id;
+  srv->submap_index = submap_id.submap_index;
+  auto future = client->async_send_request(srv);
+  auto future_status = future.wait_for(std::chrono::seconds(7));
+  if (future_status != std::future_status::ready) {
+    LOG(ERROR) << "Unable to query trajectory service.";
+    return nullptr;
+  }
+  auto result = future.get();
+  std::string compressed_cells(result->cells.begin(),
+                               result->cells.end());
   std::string cells;
   ::cartographer::common::FastGunzipString(compressed_cells, &cells);
-  const int num_pixels = srv.response.width * srv.response.height;
+  const int num_pixels = result->width * result->height;
   CHECK_EQ(cells.size(), 2 * num_pixels);
   std::vector<char> intensity;
   intensity.reserve(num_pixels);
   std::vector<char> alpha;
   alpha.reserve(num_pixels);
-  for (int i = 0; i < srv.response.height; ++i) {
-    for (int j = 0; j < srv.response.width; ++j) {
-      intensity.push_back(cells[(i * srv.response.width + j) * 2]);
-      alpha.push_back(cells[(i * srv.response.width + j) * 2 + 1]);
+  for (int i = 0; i < result->height; ++i) {
+    for (int j = 0; j < result->width; ++j) {
+      intensity.push_back(cells[(i * result->width + j) * 2]);
+      alpha.push_back(cells[(i * result->width + j) * 2 + 1]);
     }
   }
   return ::cartographer::common::make_unique<SubmapTexture>(SubmapTexture{
-      srv.response.submap_version, intensity, alpha, srv.response.width,
-      srv.response.height, srv.response.resolution,
-      ToRigid3d(srv.response.slice_pose)});
+      result->submap_version, intensity, alpha, result->width,
+      result->height, result->resolution,
+      ToRigid3d(result->slice_pose)});
 }
 
 }  // namespace cartographer_ros

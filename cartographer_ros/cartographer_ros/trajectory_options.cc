@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cartographer_ros_msgs/msg/trajectory_options.hpp>
 #include "cartographer_ros/trajectory_options.h"
 
 #include "glog/logging.h"
@@ -62,7 +63,7 @@ TrajectoryOptions CreateTrajectoryOptions(
   return options;
 }
 
-bool FromRosMessage(const cartographer_ros_msgs::TrajectoryOptions& msg,
+bool FromRosMessage(const cartographer_ros_msgs::msg::TrajectoryOptions& msg,
                     TrajectoryOptions* options) {
   options->tracking_frame = msg.tracking_frame;
   options->published_frame = msg.published_frame;
@@ -83,20 +84,20 @@ bool FromRosMessage(const cartographer_ros_msgs::TrajectoryOptions& msg,
   return true;
 }
 
-cartographer_ros_msgs::TrajectoryOptions ToRosMessage(
+cartographer_ros_msgs::msg::TrajectoryOptions::SharedPtr ToRosMessage(
     const TrajectoryOptions& options) {
-  cartographer_ros_msgs::TrajectoryOptions msg;
-  msg.tracking_frame = options.tracking_frame;
-  msg.published_frame = options.published_frame;
-  msg.odom_frame = options.odom_frame;
-  msg.provide_odom_frame = options.provide_odom_frame;
-  msg.use_odometry = options.use_odometry;
-  msg.num_laser_scans = options.num_laser_scans;
-  msg.num_multi_echo_laser_scans = options.num_multi_echo_laser_scans;
-  msg.num_subdivisions_per_laser_scan = options.num_subdivisions_per_laser_scan;
-  msg.num_point_clouds = options.num_point_clouds;
+  auto msg = std::make_shared<cartographer_ros_msgs::msg::TrajectoryOptions>();
+  msg->tracking_frame = options.tracking_frame;
+  msg->published_frame = options.published_frame;
+  msg->odom_frame = options.odom_frame;
+  msg->provide_odom_frame = options.provide_odom_frame;
+  msg->use_odometry = options.use_odometry;
+  msg->num_laser_scans = options.num_laser_scans;
+  msg->num_multi_echo_laser_scans = options.num_multi_echo_laser_scans;
+  msg->num_subdivisions_per_laser_scan = options.num_subdivisions_per_laser_scan;
+  msg->num_point_clouds = options.num_point_clouds;
   options.trajectory_builder_options.SerializeToString(
-      &msg.trajectory_builder_options_proto);
+      &msg->trajectory_builder_options_proto);
   return msg;
 }
 

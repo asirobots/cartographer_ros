@@ -31,13 +31,14 @@
 #include "cartographer_ros/trajectory_options.h"
 
 #include "cartographer_ros_msgs/srv/finish_trajectory.hpp"
-#include "cartographer_ros_msgs/srv/sensor_topics.hpp"
 #include "cartographer_ros_msgs/srv/start_trajectory.hpp"
+#include "cartographer_ros_msgs/srv/submap_query.hpp"
+#include "cartographer_ros_msgs/srv/write_state.hpp"
+#include "cartographer_ros_msgs/msg/sensor_topics.hpp"
 #include "cartographer_ros_msgs/msg/submap_entry.hpp"
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
-#include "cartographer_ros_msgs/srv/submap_query.hpp"
-#include "cartographer_ros_msgs/msg/write_trajectory_options.hpp"
-#include "cartographer_ros_msgs/msg/write_state.hpp"
+
+#include "localization_msgs/msg/pose2_d_with_covariance_relative_stamped.hpp"
 
 #include "tf2_ros/transform_broadcaster.h"
 
@@ -72,16 +73,16 @@ class Node {
 
   // The following functions handle adding sensor data to a trajectory.
   void HandleOdometryMessage(int trajectory_id, const string& sensor_id,
-                             const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
+                             const nav_msgs::msg::Odometry::ConstSharedPtr msg);
   void HandleImuMessage(int trajectory_id, const string& sensor_id,
-                        const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
+                        const sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void HandleLaserScanMessage(int trajectory_id, const string& sensor_id,
-                              const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
+                              const sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
   void HandleMultiEchoLaserScanMessage(
       int trajectory_id, const string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
+      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg);
   void HandlePointCloud2Message(int trajectory_id, const string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
+                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
 
   // Serializes the complete Node state.
   void SerializeState(const string& filename);
@@ -94,7 +95,7 @@ class Node {
 
  private:
   bool HandleSubmapQuery(const std::shared_ptr<::rmw_request_id_t> request_id,
-                         cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
+      cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
       cartographer_ros_msgs::srv::SubmapQuery::Response::SharedPtr response);
   bool HandleStartTrajectory(const std::shared_ptr<::rmw_request_id_t> request_id,
       cartographer_ros_msgs::srv::StartTrajectory::Request::SharedPtr request,
@@ -105,7 +106,12 @@ class Node {
   bool HandleWriteState(const std::shared_ptr<::rmw_request_id_t> request_id,
       cartographer_ros_msgs::srv::WriteState::Request::SharedPtr request,
       cartographer_ros_msgs::srv::WriteState::Response::SharedPtr response);
-  int AddTrajectory(const TrajectoryOptions& options,
+  // Returns the set of topic names we want to subscribe to.
+  std::unordered_set<string> ComputeExpectedTopics(
+      const TrajectoryOptions& options,
+      const cartographer_ros_msgs::msg::SensorTopics& topics);
+
+    int AddTrajectory(const TrajectoryOptions& options,
                     const cartographer_ros_msgs::msg::SensorTopics& topics);
   void LaunchSubscribers(const TrajectoryOptions& options,
                          const cartographer_ros_msgs::msg::SensorTopics& topics,
@@ -115,9 +121,8 @@ class Node {
   void PublishTrajectoryStates();
   void PublishTrajectoryNodeList();
   void PublishConstraintList();
-  void SpinOccupancyGridThreadForever();
   bool ValidateTrajectoryOptions(const TrajectoryOptions& options);
-  bool ValidateTopicName(const ::cartographer_ros_msgs::msg::SensorTopics& topics,
+  bool ValidateTopicNames(const ::cartographer_ros_msgs::msg::SensorTopics& topics,
                          const TrajectoryOptions& options);
 
   const NodeOptions node_options_;
@@ -129,9 +134,10 @@ class Node {
 
   ::rclcpp::node::Node::SharedPtr node_handle_;
   ::rclcpp::publisher::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
-  ::ros::Publisher trajectory_node_list_publisher_;
-  ::ros::Publisher constraint_list_publisher_;
-// These ros::ServiceServers need to live for the lifetime of the node.
+  ::rclcpp::publisher::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr trajectory_node_list_publisher_;
+  ::rclcpp::publisher::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr constraint_list_publisher_;
+
+  // These ros::ServiceServers need to live for the lifetime of the node.
   std::vector<rclcpp::service::ServiceBase::SharedPtr> service_servers_;
   ::rclcpp::publisher::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr scan_matched_point_cloud_publisher_;
   cartographer::common::Time last_scan_matched_point_cloud_time_ =
@@ -145,7 +151,9 @@ class Node {
 
   // We have to keep the timer handles of ::ros::WallTimers around, otherwise
   // they do not fire.
-  std::vector<::ros::WallTimer> wall_timers_;
+  std::vector<::rclcpp::TimerBase::SharedPtr> wall_timers_;
+  std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> lean_pose_publisher;
+  rclcpp::SubscriptionBase::SharedPtr asi_clock_subscriber_;
 };
 
 }  // namespace cartographer_ros

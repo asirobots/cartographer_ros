@@ -30,11 +30,11 @@
 #include "cartographer_ros/node_constants.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "cartographer_ros/submap.h"
-#include "cartographer_ros_msgs/SubmapList.h"
-#include "cartographer_ros_msgs/SubmapQuery.h"
+#include "cartographer_ros_msgs/msg/submap_list.hpp"
+#include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include "gflags/gflags.h"
-#include "nav_msgs/OccupancyGrid.h"
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 
 DEFINE_double(resolution, 0.05,
               "Resolution of a grid cell in the published occupancy grid.");
@@ -97,54 +97,56 @@ void CairoDrawEachSubmap(
 
 class Node {
  public:
-  explicit Node(double resolution);
+  explicit Node(double resolution, ::rclcpp::Node::SharedPtr node_handle);
   ~Node() {}
 
   Node(const Node&) = delete;
   Node& operator=(const Node&) = delete;
 
  private:
-  void HandleSubmapList(const cartographer_ros_msgs::SubmapList::ConstPtr& msg);
-  void DrawAndPublish(const string& frame_id, const ros::Time& time);
-  void PublishOccupancyGrid(const string& frame_id, const ros::Time& time,
+  void HandleSubmapList(cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg);
+  void DrawAndPublish(const string& frame_id, builtin_interfaces::msg::Time time);
+  void PublishOccupancyGrid(const string& frame_id, builtin_interfaces::msg::Time time,
                             const Eigen::Array2f& origin,
                             const Eigen::Array2i& size,
                             cairo_surface_t* surface);
 
-  ::ros::NodeHandle node_handle_;
   const double resolution_;
+  ::rclcpp::Node::SharedPtr node_handle_;
 
   ::cartographer::common::Mutex mutex_;
-  ::ros::ServiceClient client_ GUARDED_BY(mutex_);
-  ::ros::Subscriber submap_list_subscriber_ GUARDED_BY(mutex_);
-  ::ros::Publisher occupancy_grid_publisher_ GUARDED_BY(mutex_);
+  ::rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_ GUARDED_BY(mutex_);
+  ::rclcpp::SubscriptionBase::SharedPtr submap_list_subscriber_ GUARDED_BY(mutex_);
+  ::rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_ GUARDED_BY(mutex_);
   std::map<SubmapId, SubmapState> submaps_ GUARDED_BY(mutex_);
 };
 
-Node::Node(const double resolution)
-    : resolution_(resolution),
-      client_(node_handle_.serviceClient<::cartographer_ros_msgs::SubmapQuery>(
-          kSubmapQueryServiceName)),
-      submap_list_subscriber_(node_handle_.subscribe(
-          kSubmapListTopic, kLatestOnlyPublisherQueueSize,
-          boost::function<void(
-              const cartographer_ros_msgs::SubmapList::ConstPtr&)>(
-              [this](const cartographer_ros_msgs::SubmapList::ConstPtr& msg) {
-                HandleSubmapList(msg);
-              }))),
-      occupancy_grid_publisher_(
-          node_handle_.advertise<::nav_msgs::OccupancyGrid>(
-              kOccupancyGridTopic, kLatestOnlyPublisherQueueSize,
-              true /* latched */))
+Node::Node(const double resolution, ::rclcpp::Node::SharedPtr node_handle)
+    : resolution_(resolution), node_handle_(node_handle)
+{
+  client_ = node_handle_->create_client<::cartographer_ros_msgs::srv::SubmapQuery>(
+      kSubmapQueryServiceName);
 
-{}
+  auto qos = rmw_qos_profile_default;
+  qos.depth = kLatestOnlyPublisherQueueSize;
+  qos.durability = rmw_qos_durability_policy_t::RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  submap_list_subscriber_ = node_handle_->create_subscription<cartographer_ros_msgs::msg::SubmapList>(
+          kSubmapListTopic,
+          [this](cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg) {
+              HandleSubmapList(msg);
+          }, qos);
+
+   occupancy_grid_publisher_ = node_handle_->create_publisher<::nav_msgs::msg::OccupancyGrid>(
+              kOccupancyGridTopic, qos);
+
+}
 
 void Node::HandleSubmapList(
-    const cartographer_ros_msgs::SubmapList::ConstPtr& msg) {
+    cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg) {
   ::cartographer::common::MutexLocker locker(&mutex_);
 
   // We do not do any work if nobody listens.
-  if (occupancy_grid_publisher_.getNumSubscribers() == 0) {
+  if (node_handle_->count_subscribers(occupancy_grid_publisher_->get_topic_name()) == 0) {
     return;
   }
   for (const auto& submap_msg : msg->submap) {
@@ -157,7 +159,7 @@ void Node::HandleSubmapList(
       continue;
     }
 
-    auto fetched_texture = ::cartographer_ros::FetchSubmapTexture(id, &client_);
+    auto fetched_texture = ::cartographer_ros::FetchSubmapTexture(id, client_);
     if (fetched_texture == nullptr) {
       continue;
     }
@@ -196,7 +198,7 @@ void Node::HandleSubmapList(
   DrawAndPublish(msg->header.frame_id, msg->header.stamp);
 }
 
-void Node::DrawAndPublish(const string& frame_id, const ros::Time& time) {
+void Node::DrawAndPublish(const string& frame_id, builtin_interfaces::msg::Time time) {
   if (submaps_.empty()) {
     return;
   }
@@ -248,11 +250,11 @@ void Node::DrawAndPublish(const string& frame_id, const ros::Time& time) {
   }
 }
 
-void Node::PublishOccupancyGrid(const string& frame_id, const ros::Time& time,
+void Node::PublishOccupancyGrid(const string& frame_id, builtin_interfaces::msg::Time time,
                                 const Eigen::Array2f& origin,
                                 const Eigen::Array2i& size,
                                 cairo_surface_t* surface) {
-  nav_msgs::OccupancyGrid occupancy_grid;
+  nav_msgs::msg::OccupancyGrid occupancy_grid;
   occupancy_grid.header.stamp = time;
   occupancy_grid.header.frame_id = frame_id;
   occupancy_grid.info.map_load_time = time;
@@ -269,23 +271,23 @@ void Node::PublishOccupancyGrid(const string& frame_id, const ros::Time& time,
   occupancy_grid.info.origin.orientation.z = 0.;
 
   const uint32* pixel_data =
-      reinterpret_cast<uint32*>(cairo_image_surface_get_data(surface));
+      reinterpret_cast<uint32_t*>(cairo_image_surface_get_data(surface));
   occupancy_grid.data.reserve(size.x() * size.y());
   for (int y = size.y() - 1; y >= 0; --y) {
     for (int x = 0; x < size.x(); ++x) {
-      const uint32 packed = pixel_data[y * size.x() + x];
+      const uint32_t packed = pixel_data[y * size.x() + x];
       const unsigned char color = packed >> 16;
       const unsigned char observed = packed >> 8;
-      const int value =
+      const int8_t value =
           observed == 0
-              ? -1
-              : ::cartographer::common::RoundToInt((1. - color / 255.) * 100.);
+              ? int8_t(-1)
+              : int8_t(::cartographer::common::RoundToInt((1. - color / 255.) * 100.));
       CHECK_LE(-1, value);
       CHECK_GE(100, value);
       occupancy_grid.data.push_back(value);
     }
   }
-  occupancy_grid_publisher_.publish(occupancy_grid);
+  occupancy_grid_publisher_->publish(occupancy_grid);
 }
 
 }  // namespace
@@ -295,12 +297,12 @@ int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
 
-  ::ros::init(argc, argv, "cartographer_occupancy_grid_node");
-  ::ros::start();
+  ::rclcpp::init(argc, argv);
 
+  auto node = rclcpp::Node::make_shared("occupancy_grid_node");
   cartographer_ros::ScopedRosLogSink ros_log_sink;
-  ::cartographer_ros::Node node(FLAGS_resolution);
+  ::cartographer_ros::Node wrapper(FLAGS_resolution, node);
 
-  ::ros::spin();
-  ::ros::shutdown();
+  ::rclcpp::spin(node);
+  ::rclcpp::shutdown();
 }

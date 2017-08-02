@@ -207,10 +207,6 @@ Eigen::Quaterniond ToEigen(const geometry_msgs::msg::Quaternion& quaternion) {
                             quaternion.z);
 }
 
-PoseCovariance ToPoseCovariance(const boost::array<double, 36>& covariance) {
-  return Eigen::Map<const Eigen::Matrix<double, 6, 6>>(covariance.data());
-}
-
 geometry_msgs::msg::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
   geometry_msgs::msg::Transform transform;
   transform.translation.x = rigid3d.translation().x();
@@ -233,8 +229,8 @@ geometry_msgs::msg::Pose ToGeometryMsgPose(const Rigid3d& rigid3d) {
   return pose;
 }
 
-geometry_msgs::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d) {
-  geometry_msgs::Point point;
+geometry_msgs::msg::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d) {
+  geometry_msgs::msg::Point point;
   point.x = vector3d.x();
   point.y = vector3d.y();
   point.z = vector3d.z();

@@ -51,14 +51,14 @@ class SensorBridge {
   std::unique_ptr<::cartographer::sensor::ImuData> ToImuData(
       const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
   void HandleImuMessage(const string& sensor_id,
-                        const sensor_msgs::Imu::ConstPtr& msg);
+                        const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
   void HandleLaserScanMessage(const string& sensor_id,
-                              const sensor_msgs::LaserScan::ConstPtr& msg);
+                              const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
   void HandleMultiEchoLaserScanMessage(
       const string& sensor_id,
-      const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg);
+      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
   void HandlePointCloud2Message(const string& sensor_id,
-                                const sensor_msgs::PointCloud2::ConstPtr& msg);
+                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 
   const TfBridge& tf_bridge() const;
 
