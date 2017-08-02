@@ -14,29 +14,34 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_ROS_NODE_OPTIONS_H_
-#define CARTOGRAPHER_ROS_NODE_OPTIONS_H_
+#ifndef CARTOGRAPHER_ROS_SUBMAP_H_
+#define CARTOGRAPHER_ROS_SUBMAP_H_
 
-#include <string>
+#include <memory>
+#include <vector>
 
-#include "cartographer/common/lua_parameter_dictionary.h"
-#include "cartographer/mapping/map_builder.h"
+#include "cartographer/mapping/id.h"
+#include "cartographer/transform/rigid_transform.h"
+#include "ros/ros.h"
 
 namespace cartographer_ros {
 
-// Top-level options of Cartographer's ROS integration.
-struct NodeOptions {
-  ::cartographer::mapping::proto::MapBuilderOptions map_builder_options;
-  string map_frame;
-  double lookup_transform_timeout_sec;
-  double submap_publish_period_sec;
-  double pose_publish_period_sec;
-  double trajectory_publish_period_sec;
+struct SubmapTexture {
+  int version;
+  std::vector<char> intensity;
+  std::vector<char> alpha;
+  int width;
+  int height;
+  double resolution;
+  ::cartographer::transform::Rigid3d slice_pose;
 };
 
-NodeOptions CreateNodeOptions(
-    ::cartographer::common::LuaParameterDictionary* lua_parameter_dictionary);
+// Fetch 'submap_id' using the 'client' and returning the response or 'nullptr'
+// on error.
+std::unique_ptr<SubmapTexture> FetchSubmapTexture(
+    const ::cartographer::mapping::SubmapId& submap_id,
+    ros::ServiceClient* client);
 
 }  // namespace cartographer_ros
 
-#endif  // CARTOGRAPHER_ROS_NODE_OPTIONS_H_
+#endif  // CARTOGRAPHER_ROS_SUBMAP_H_

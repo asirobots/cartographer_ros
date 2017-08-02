@@ -18,6 +18,7 @@
 #define CARTOGRAPHER_ROS_MAP_BUILDER_BRIDGE_H_
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -26,11 +27,13 @@
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/sensor_bridge.h"
 #include "cartographer_ros/tf_bridge.h"
+#include "cartographer_ros/trajectory_options.h"
 #include "cartographer_ros_msgs/msg/submap_entry.hpp"
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
   #include <rclcpp/rclcpp.hpp>
+#include "visualization_msgs/MarkerArray.h"
 
 namespace cartographer_ros {
 
@@ -48,17 +51,19 @@ class MapBuilderBridge {
   MapBuilderBridge(const MapBuilderBridge&) = delete;
   MapBuilderBridge& operator=(const MapBuilderBridge&) = delete;
 
+  void LoadMap(const std::string& map_filename);
   int AddTrajectory(const std::unordered_set<string>& expected_sensor_ids,
                     const TrajectoryOptions& trajectory_options);
   void FinishTrajectory(int trajectory_id);
-  void WriteAssets(const string& stem);
+  void SerializeState(const string& filename);
 
   void HandleSubmapQuery(const std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Request> request,
                          std::shared_ptr<::cartographer_ros_msgs::srv::SubmapQuery::Response> response);
 
   cartographer_ros_msgs::msg::SubmapList GetSubmapList();
-  std::unique_ptr<nav_msgs::msg::OccupancyGrid> BuildOccupancyGrid();
   std::unordered_map<int, TrajectoryState> GetTrajectoryStates();
+  visualization_msgs::MarkerArray GetTrajectoryNodeList();
+  visualization_msgs::MarkerArray GetConstraintList();
 
   SensorBridge* sensor_bridge(int trajectory_id);
 

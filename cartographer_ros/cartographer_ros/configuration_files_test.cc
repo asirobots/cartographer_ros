@@ -19,6 +19,7 @@
 
 #include "cartographer/common/configuration_file_resolver.h"
 #include "cartographer_ros/node_options.h"
+#include "cartographer_ros/trajectory_options.h"
 #include "gtest/gtest.h"
 
 namespace cartographer_ros {
@@ -44,9 +45,11 @@ TEST_P(ConfigurationFilesTest, ValidateNodeOptions) {
 }
 
 INSTANTIATE_TEST_CASE_P(ValidateAllNodeOptions, ConfigurationFilesTest,
-                        ::testing::Values("backpack_2d.lua", "backpack_3d.lua",
-                                          "pr2.lua", "revo_lds.lua" // not working: "taurob_tracker.lua"
-                                          ));
+                        ::testing::Values("backpack_2d.lua",
+                                          "backpack_2d_localization.lua",
+                                          "backpack_3d.lua", "pr2.lua",
+                                          "revo_lds.lua",
+                                          "taurob_tracker.lua"));
 
 }  // namespace
 }  // namespace cartographer_ros

@@ -41,9 +41,8 @@ namespace {
 // properly.
 constexpr float kPointCloudComponentFourMagic = 1.;
 
-using ::cartographer::transform::Rigid3d;
-using ::cartographer::kalman_filter::PoseCovariance;
 using ::cartographer::sensor::PointCloudWithIntensities;
+using ::cartographer::transform::Rigid3d;
 
 sensor_msgs::msg::PointCloud2 PreparePointCloud2Message(const int64 timestamp,
                                                    const string& frame_id,
@@ -226,14 +225,20 @@ geometry_msgs::msg::Transform ToGeometryMsgTransform(const Rigid3d& rigid3d) {
 
 geometry_msgs::msg::Pose ToGeometryMsgPose(const Rigid3d& rigid3d) {
   geometry_msgs::msg::Pose pose;
-  pose.position.x = rigid3d.translation().x();
-  pose.position.y = rigid3d.translation().y();
-  pose.position.z = rigid3d.translation().z();
+  pose.position = ToGeometryMsgPoint(rigid3d.translation());
   pose.orientation.w = rigid3d.rotation().w();
   pose.orientation.x = rigid3d.rotation().x();
   pose.orientation.y = rigid3d.rotation().y();
   pose.orientation.z = rigid3d.rotation().z();
   return pose;
+}
+
+geometry_msgs::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d) {
+  geometry_msgs::Point point;
+  point.x = vector3d.x();
+  point.y = vector3d.y();
+  point.z = vector3d.z();
+  return point;
 }
 
 }  // namespace cartographer_ros

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <time.h>
+#include <chrono>
 #include <csignal>
 #include <sstream>
 #include <string>
@@ -26,6 +28,7 @@
 #include "cartographer_ros/node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"
+#include "cartographer_ros/split_string.h"
 #include "cartographer_ros/urdf_reader.h"
 #include "gflags/gflags.h"
 #include "ros/callback_queue.h"
@@ -49,6 +52,8 @@ DEFINE_string(
     "URDF file that contains static links for your sensor configuration.");
 DEFINE_bool(use_bag_transforms, true,
             "Whether to read, use and republish the transforms from the bag.");
+DEFINE_string(pbstream_filename, "",
+              "If non-empty, filename of a pbstream to load.");
 
 namespace cartographer_ros {
 namespace {
@@ -56,21 +61,10 @@ namespace {
 constexpr char kClockTopic[] = "clock";
 constexpr char kTfStaticTopic[] = "/tf_static";
 constexpr char kTfTopic[] = "tf";
-constexpr int kLatestOnlyPublisherQueueSize = 1;
 
 volatile std::sig_atomic_t sigint_triggered = 0;
 
 void SigintHandler(int) { sigint_triggered = 1; }
-
-std::vector<string> SplitString(const string& input, const char delimiter) {
-  std::stringstream stream(input);
-  string token;
-  std::vector<string> tokens;
-  while (std::getline(stream, token, delimiter)) {
-    tokens.push_back(token);
-  }
-  return tokens;
-}
 
 // TODO(hrapp): This is duplicated in node_main.cc. Pull out into a config
 // unit.
@@ -88,6 +82,8 @@ std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
 }
 
 void Run(const std::vector<string>& bag_filenames) {
+  const std::chrono::time_point<std::chrono::steady_clock> start_time =
+      std::chrono::steady_clock::now();
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
   std::tie(node_options, trajectory_options) = LoadOptions();
@@ -107,46 +103,16 @@ void Run(const std::vector<string>& bag_filenames) {
   // remaining sensor data that cannot be transformed due to missing transforms.
   node_options.lookup_transform_timeout_sec = 0.;
   Node node(node_options, &tf_buffer);
+  if (!FLAGS_pbstream_filename.empty()) {
+    // TODO(jihoonl): LoadMap should be replaced by some better deserialization
+    // of full SLAM state as non-frozen trajectories once possible
+    node.LoadMap(FLAGS_pbstream_filename);
+  }
 
   std::unordered_set<string> expected_sensor_ids;
-  const auto check_insert = [&expected_sensor_ids, &node](const string& topic) {
+  for (const string& topic : node.ComputeDefaultTopics(trajectory_options)) {
     CHECK(expected_sensor_ids.insert(node.node_handle()->resolveName(topic))
               .second);
-  };
-
-  // For 2D SLAM, subscribe to exactly one horizontal laser.
-  if (trajectory_options.use_laser_scan) {
-    check_insert(kLaserScanTopic);
-  }
-  if (trajectory_options.use_multi_echo_laser_scan) {
-    check_insert(kMultiEchoLaserScanTopic);
-  }
-
-  // For 3D SLAM, subscribe to all point clouds topics.
-  if (trajectory_options.num_point_clouds > 0) {
-    for (int i = 0; i < trajectory_options.num_point_clouds; ++i) {
-      // TODO(hrapp): This code is duplicated in places. Pull out a method.
-      string topic = kPointCloud2Topic;
-      if (trajectory_options.num_point_clouds > 1) {
-        topic += "_" + std::to_string(i + 1);
-      }
-      check_insert(topic);
-    }
-  }
-
-  // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
-  // required.
-  if (node_options.map_builder_options.use_trajectory_builder_3d() ||
-      (node_options.map_builder_options.use_trajectory_builder_2d() &&
-       trajectory_options.trajectory_builder_options
-           .trajectory_builder_2d_options()
-           .use_imu_data())) {
-    check_insert(kImuTopic);
-  }
-
-  // For both 2D and 3D SLAM, odometry is optional.
-  if (trajectory_options.use_odometry) {
-    check_insert(kOdometryTopic);
   }
 
   ::ros::Publisher tf_publisher =
@@ -168,8 +134,8 @@ void Run(const std::vector<string>& bag_filenames) {
       break;
     }
 
-    const int trajectory_id = node.map_builder_bridge()->AddTrajectory(
-        expected_sensor_ids, trajectory_options);
+    const int trajectory_id =
+        node.AddOfflineTrajectory(expected_sensor_ids, trajectory_options);
 
     rosbag::Bag bag;
     bag.open(bag_filename, rosbag::bagmode::Read);
@@ -202,41 +168,44 @@ void Run(const std::vector<string>& bag_filenames) {
 
       while (!delayed_messages.empty() &&
              delayed_messages.front().getTime() <
-                 msg.getTime() + ::ros::Duration(1.)) {
+                 msg.getTime() - ::ros::Duration(1.)) {
         const rosbag::MessageInstance& delayed_msg = delayed_messages.front();
         const string topic = node.node_handle()->resolveName(
             delayed_msg.getTopic(), false /* resolve */);
         if (delayed_msg.isType<sensor_msgs::LaserScan>()) {
-          node.map_builder_bridge()
-              ->sensor_bridge(trajectory_id)
-              ->HandleLaserScanMessage(
-                  topic, delayed_msg.instantiate<sensor_msgs::LaserScan>());
+          node.HandleLaserScanMessage(
+              trajectory_id, topic,
+              delayed_msg.instantiate<sensor_msgs::LaserScan>());
         }
         if (delayed_msg.isType<sensor_msgs::MultiEchoLaserScan>()) {
-          node.map_builder_bridge()
-              ->sensor_bridge(trajectory_id)
-              ->HandleMultiEchoLaserScanMessage(
-                  topic,
-                  delayed_msg.instantiate<sensor_msgs::MultiEchoLaserScan>());
+          node.HandleMultiEchoLaserScanMessage(
+              trajectory_id, topic,
+              delayed_msg.instantiate<sensor_msgs::MultiEchoLaserScan>());
         }
         if (delayed_msg.isType<sensor_msgs::PointCloud2>()) {
-          node.map_builder_bridge()
-              ->sensor_bridge(trajectory_id)
-              ->HandlePointCloud2Message(
-                  topic, delayed_msg.instantiate<sensor_msgs::PointCloud2>());
+          node.HandlePointCloud2Message(
+              trajectory_id, topic,
+              delayed_msg.instantiate<sensor_msgs::PointCloud2>());
         }
         if (delayed_msg.isType<sensor_msgs::Imu>()) {
-          node.map_builder_bridge()
-              ->sensor_bridge(trajectory_id)
-              ->HandleImuMessage(topic,
-                                 delayed_msg.instantiate<sensor_msgs::Imu>());
+          node.HandleImuMessage(trajectory_id, topic,
+                                delayed_msg.instantiate<sensor_msgs::Imu>());
         }
         if (delayed_msg.isType<nav_msgs::Odometry>()) {
-          node.map_builder_bridge()
-              ->sensor_bridge(trajectory_id)
-              ->HandleOdometryMessage(
-                  topic, delayed_msg.instantiate<nav_msgs::Odometry>());
+          node.HandleOdometryMessage(
+              trajectory_id, topic,
+              delayed_msg.instantiate<nav_msgs::Odometry>());
         }
+        rosgraph_msgs::Clock clock;
+        clock.clock = delayed_msg.getTime();
+        clock_publisher.publish(clock);
+
+        ::ros::spinOnce();
+
+        LOG_EVERY_N(INFO, 100000)
+            << "Processed " << (delayed_msg.getTime() - begin_time).toSec()
+            << " of " << duration_in_seconds << " bag time seconds...";
+
         delayed_messages.pop_front();
       }
 
@@ -246,23 +215,28 @@ void Run(const std::vector<string>& bag_filenames) {
         continue;
       }
       delayed_messages.push_back(msg);
-
-      rosgraph_msgs::Clock clock;
-      clock.clock = msg.getTime();
-      clock_publisher.publish(clock);
-
-      ::ros::spinOnce();
-
-      LOG_EVERY_N(INFO, 100000)
-          << "Processed " << (msg.getTime() - begin_time).toSec() << " of "
-          << duration_in_seconds << " bag time seconds...";
     }
 
     bag.close();
-    node.map_builder_bridge()->FinishTrajectory(trajectory_id);
+    node.FinishTrajectory(trajectory_id);
   }
 
-  node.map_builder_bridge()->WriteAssets(bag_filenames.front());
+  const std::chrono::time_point<std::chrono::steady_clock> end_time =
+      std::chrono::steady_clock::now();
+  const double wall_clock_seconds =
+      std::chrono::duration_cast<std::chrono::duration<double>>(end_time -
+                                                                start_time)
+          .count();
+
+  LOG(INFO) << "Elapsed wall clock time: " << wall_clock_seconds << " s";
+#ifdef __linux__
+  timespec cpu_timespec = {};
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu_timespec);
+  LOG(INFO) << "Elapsed CPU time: "
+            << (cpu_timespec.tv_sec + 1e-9 * cpu_timespec.tv_nsec) << " s";
+#endif
+
+  node.SerializeState(bag_filenames.front() + ".pbstream");
 }
 
 }  // namespace

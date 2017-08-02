@@ -18,11 +18,16 @@
 #include <vector>
 
 #include "cartographer/common/configuration_file_resolver.h"
+#include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/make_unique.h"
-#include "cartographer_ros/node.h"
-#include "cartographer_ros/node_options.h"
+#include "cartographer/common/port.h"
+#include "cartographer_ros/node_constants.h"
 #include "cartographer_ros/ros_log_sink.h"
-#include "tf2_ros/transform_listener.h"
+#include "cartographer_ros/trajectory_options.h"
+#include "cartographer_ros_msgs/StartTrajectory.h"
+#include "cartographer_ros_msgs/TrajectoryOptions.h"
+#include "gflags/gflags.h"
+#include "ros/ros.h"
 
 DEFINE_string(configuration_directory, "",
               "First directory in which configuration files are searched, "
@@ -31,63 +36,53 @@ DEFINE_string(configuration_directory, "",
 DEFINE_string(configuration_basename, "",
               "Basename, i.e. not containing any directory prefix, of the "
               "configuration file.");
-DEFINE_string(map_filename, "", "If non-empty, filename of a map to load.");
 
 namespace cartographer_ros {
+namespace {
 
-std::vector<std::string> SplitString(const std::string& text, const std::string& delims)
-{
-    std::vector<std::string> tokens;
-    std::size_t start = text.find_first_not_of(delims), end = 0;
-
-    while((end = text.find_first_of(delims, start)) != std::string::npos)
-    {
-        tokens.push_back(text.substr(start, end - start));
-        start = text.find_first_not_of(delims, end);
-    }
-    if(start != std::string::npos)
-        tokens.push_back(text.substr(start));
-
-    return tokens;
-}
-
-std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
+TrajectoryOptions LoadOptions() {
   auto file_resolver = cartographer::common::make_unique<
       cartographer::common::ConfigurationFileResolver>(
-      SplitString(FLAGS_configuration_directory, ":"));
+      std::vector<string>{FLAGS_configuration_directory});
   const string code =
       file_resolver->GetFileContentOrDie(FLAGS_configuration_basename);
-  cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
-      code, std::move(file_resolver));
-
-  return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
-                         CreateTrajectoryOptions(&lua_parameter_dictionary));
+  auto lua_parameter_dictionary =
+      cartographer::common::LuaParameterDictionary::NonReferenceCounted(
+          code, std::move(file_resolver));
+  return CreateTrajectoryOptions(lua_parameter_dictionary.get());
 }
 
-void Run() {
-  const auto options = LoadOptions();
-  constexpr double kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
-  tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
-  tf2_ros::TransformListener tf(tf_buffer);
-  NodeOptions node_options;
-  TrajectoryOptions trajectory_options;
-  std::tie(node_options, trajectory_options) = LoadOptions();
+bool Run() {
+  ros::NodeHandle node_handle;
+  ros::ServiceClient client =
+      node_handle.serviceClient<cartographer_ros_msgs::StartTrajectory>(
+          kStartTrajectoryServiceName);
+  cartographer_ros_msgs::StartTrajectory srv;
+  srv.request.options = ToRosMessage(LoadOptions());
+  srv.request.topics.laser_scan_topic = kLaserScanTopic;
+  srv.request.topics.multi_echo_laser_scan_topic = kMultiEchoLaserScanTopic;
+  srv.request.topics.point_cloud2_topic = kPointCloud2Topic;
+  srv.request.topics.imu_topic = kImuTopic;
+  srv.request.topics.odometry_topic = kOdometryTopic;
 
-  Node node(node_options, &tf_buffer);
-  if (!FLAGS_map_filename.empty()) {
-    node.LoadMap(FLAGS_map_filename);
+  if (!client.call(srv)) {
+    LOG(ERROR) << "Error starting trajectory.";
+    return false;
   }
-  node.StartTrajectoryWithDefaultTopics(trajectory_options);
-
-  rclcpp::spin(node.node_handle());
-
-  node.FinishAllTrajectories();
+  LOG(INFO) << "Started trajectory " << srv.response.trajectory_id;
+  return true;
 }
 
+}  // namespace
 }  // namespace cartographer_ros
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
+  google::SetUsageMessage(
+      "\n\n"
+      "Convenience tool around the start_trajectory service. This takes a Lua "
+      "file that is accepted by the node as well and starts a new trajectory "
+      "using its settings.\n");
   google::ParseCommandLineFlags(&argc, &argv, true);
 
   CHECK(!FLAGS_configuration_directory.empty())
@@ -95,9 +90,11 @@ int main(int argc, char** argv) {
   CHECK(!FLAGS_configuration_basename.empty())
       << "-configuration_basename is missing.";
 
-  ::rclcpp::init(argc, argv);
+  ::ros::init(argc, argv, "cartographer_start_trajectory");
+  ::ros::start();
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;
-  cartographer_ros::Run();
-  ::rclcpp::shutdown();
+  int exit_code = cartographer_ros::Run() ? 0 : 1;
+  ::ros::shutdown();
+  return exit_code;
 }

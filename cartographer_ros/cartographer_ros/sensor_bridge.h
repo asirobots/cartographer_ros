@@ -17,11 +17,15 @@
 #ifndef CARTOGRAPHER_ROS_SENSOR_BRIDGE_H_
 #define CARTOGRAPHER_ROS_SENSOR_BRIDGE_H_
 
+#include <memory>
+
 #include "cartographer/mapping/trajectory_builder.h"
+#include "cartographer/sensor/imu_data.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "cartographer/transform/transform.h"
 #include "cartographer_ros/tf_bridge.h"
 #include "geometry_msgs/msg/transform.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -35,8 +39,8 @@ namespace cartographer_ros {
 class SensorBridge {
  public:
   explicit SensorBridge(
-      const string& tracking_frame, double lookup_transform_timeout_sec,
-      tf2_ros::Buffer* tf_buffer,
+      int num_subdivisions_per_laser_scan, const string& tracking_frame,
+      double lookup_transform_timeout_sec, tf2_ros::Buffer* tf_buffer,
       ::cartographer::mapping::TrajectoryBuilder* trajectory_builder);
 
   SensorBridge(const SensorBridge&) = delete;
@@ -44,24 +48,32 @@ class SensorBridge {
 
   void HandleOdometryMessage(const string& sensor_id,
                              const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
+  std::unique_ptr<::cartographer::sensor::ImuData> ToImuData(
+      const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
   void HandleImuMessage(const string& sensor_id,
-                        const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
+                        const sensor_msgs::Imu::ConstPtr& msg);
   void HandleLaserScanMessage(const string& sensor_id,
-                              const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
+                              const sensor_msgs::LaserScan::ConstPtr& msg);
   void HandleMultiEchoLaserScanMessage(
       const string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
+      const sensor_msgs::MultiEchoLaserScan::ConstPtr& msg);
   void HandlePointCloud2Message(const string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
+                                const sensor_msgs::PointCloud2::ConstPtr& msg);
 
   const TfBridge& tf_bridge() const;
 
  private:
+  void HandleLaserScan(const string& sensor_id,
+                       ::cartographer::common::Time start_time,
+                       const string& frame_id,
+                       const ::cartographer::sensor::PointCloud& points,
+                       double seconds_between_points);
   void HandleRangefinder(const string& sensor_id,
-                         const ::cartographer::common::Time time,
+                         ::cartographer::common::Time time,
                          const string& frame_id,
                          const ::cartographer::sensor::PointCloud& ranges);
 
+  const int num_subdivisions_per_laser_scan_;
   const TfBridge tf_bridge_;
   ::cartographer::mapping::TrajectoryBuilder* const trajectory_builder_;
 };

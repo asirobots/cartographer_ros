@@ -16,11 +16,38 @@ cmake_minimum_required(VERSION 3.5)
 
 project(cartographer_ros)
 
+<<<<<<< HEAD
 find_package(ament_cmake REQUIRED)
 
 if(NOT WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -ggdb3")
 endif()
+=======
+set(PACKAGE_DEPENDENCIES
+  cartographer_ros_msgs
+  eigen_conversions
+  geometry_msgs
+  message_runtime
+  nav_msgs
+  pcl_conversions
+  rosbag
+  roscpp
+  roslib
+  sensor_msgs
+  std_msgs
+  tf2
+  tf2_eigen
+  tf2_ros
+  urdf
+  visualization_msgs
+)
+
+find_package(cartographer REQUIRED)
+include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
+set(BUILD_SHARED_LIBS OFF)
+google_initialize_cartographer_project()
+google_enable_testing()
+>>>>>>> master
 
 find_package(rclcpp REQUIRED)
 find_package(cartographer_ros_msgs REQUIRED)
@@ -30,7 +57,6 @@ find_package(asiframework_msgs REQUIRED)
 find_package(localization_msgs REQUIRED)
 
 include(FindPkgConfig)
-pkg_search_module(YAMLCPP REQUIRED yaml-cpp>=0.5.1)
 
 find_package(cartographer REQUIRED)
 include("${CARTOGRAPHER_CMAKE_DIR}/functions.cmake")
@@ -38,6 +64,12 @@ google_initialize_cartographer_project()
 
 find_package(LuaGoogle REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
+# Fix for PCL linking issue in Zesty, as in
+# https://github.com/ros-perception/perception_pcl/blob/b53b5d5c3abc7c3afde8a77177674e6d74c59522/pcl_ros/CMakeLists.txt#L12
+if(NOT "${PCL_LIBRARIES}" STREQUAL "")
+  # FIXME: this causes duplicates and not found error in ubuntu:zesty
+  list(REMOVE_ITEM PCL_LIBRARIES "/usr/lib/libmpi.so")
+endif()
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system iostreams)
 find_package(tf2 REQUIRED)
@@ -54,11 +86,35 @@ if(DEFINED urdfdom_headers_VERSION)
 endif()
 
 include_directories(
+<<<<<<< HEAD
   include
   "."
   ${tf2_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
   ${tf2_eigen_INCLUDE_DIRS}
+=======
+  ${urdfdom_headers_INCLUDE_DIRS}
+)
+
+# Override Catkin's GTest configuration to use GMock.
+set(GTEST_FOUND TRUE)
+set(GTEST_INCLUDE_DIRS ${GMOCK_INCLUDE_DIRS})
+set(GTEST_LIBRARIES ${GMOCK_LIBRARIES})
+
+catkin_package(
+  CATKIN_DEPENDS
+    ${PACKAGE_DEPENDENCIES}
+  DEPENDS
+    # TODO(damonkohler): This should be here but causes Catkin to abort because
+    # protobuf specifies a library '-lpthread' instead of just 'pthread'.
+    # CARTOGRAPHER
+    PCL
+    EIGEN3
+    Boost
+    urdfdom_headers
+  INCLUDE_DIRS "."
+  LIBRARIES ${PROJECT_NAME}
+>>>>>>> master
 )
 
 set(ALL_SRCS
@@ -80,9 +136,12 @@ add_library(${PROJECT_NAME} ${ALL_SRCS})
 # Cartographer
 target_link_libraries(${PROJECT_NAME} PUBLIC cartographer)
 
+<<<<<<< HEAD
 # Eigen
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${EIGEN3_INCLUDE_DIR}")
 
+=======
+>>>>>>> master
 # Lua
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${LUA_INCLUDE_DIR})
 

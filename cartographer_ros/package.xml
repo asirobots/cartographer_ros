@@ -17,7 +17,7 @@
 
 <package format="2">
   <name>cartographer_ros</name>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <description>
     Cartographer is a system that provides real-time simultaneous localization
     and mapping (SLAM) in 2D and 3D across multiple platforms and sensor
@@ -32,16 +32,29 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <build_depend>google-mock</build_depend>
+  <build_depend>g++-static</build_depend>
+  <build_depend>protobuf-dev</build_depend>
+  <build_depend>python-sphinx</build_depend>
+
+  <build_depend>cartographer</build_depend>
   <build_depend>cartographer_ros_msgs</build_depend>
-  <build_depend>console_bridge</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>libgflags-dev</build_depend>
+  <build_depend>libgoogle-glog-dev</build_depend>
+  <build_depend>libpcl-all-dev</build_depend>
+  <build_depend>message_runtime</build_depend>
   <build_depend>nav_msgs</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>robot_state_publisher</build_depend>
   <build_depend>rclcpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
   <build_depend>tf2</build_depend>
-  <build_depend>tf2_ros</build_depend>
   <build_depend>tf2_eigen</build_depend>
-  <build_depend>asiframework_msgs</build_depend>
-  <build_depend>localization_msgs</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>visualization_msgs</build_depend>
 
   <exec_depend>cartographer_ros_msgs</exec_depend>
   <exec_depend>console_bridge</exec_depend>

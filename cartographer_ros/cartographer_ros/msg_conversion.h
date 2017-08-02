@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_ROS_GOOGLE_CARTOGRAPHER_SRC_MSG_CONVERSION_H_
-#define CARTOGRAPHER_ROS_GOOGLE_CARTOGRAPHER_SRC_MSG_CONVERSION_H_
+#ifndef CARTOGRAPHER_ROS_MSG_CONVERSION_H_
+#define CARTOGRAPHER_ROS_MSG_CONVERSION_H_
 
 #include <boost/array.hpp>
 
 #include "cartographer/common/port.h"
-#include "cartographer/kalman_filter/pose_tracker.h"
 #include "cartographer/sensor/point_cloud.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "geometry_msgs/msg/pose.hpp"
@@ -115,6 +114,8 @@ geometry_msgs::msg::Transform ToGeometryMsgTransform(
 geometry_msgs::msg::Pose ToGeometryMsgPose(
     const ::cartographer::transform::Rigid3d& rigid3d);
 
+geometry_msgs::Point ToGeometryMsgPoint(const Eigen::Vector3d& vector3d);
+
 ::cartographer::sensor::PointCloudWithIntensities ToPointCloudWithIntensities(
     const sensor_msgs::msg::LaserScan& msg);
 
@@ -133,9 +134,6 @@ Eigen::Vector3d ToEigen(const geometry_msgs::msg::Vector3& vector3);
 
 Eigen::Quaterniond ToEigen(const geometry_msgs::msg::Quaternion& quaternion);
 
-::cartographer::kalman_filter::PoseCovariance ToPoseCovariance(
-    const boost::array<double, 36>& covariance);
-
 }  // namespace cartographer_ros
 
-#endif  // CARTOGRAPHER_ROS_GOOGLE_CARTOGRAPHER_SRC_MSG_CONVERSION_H_
+#endif  // CARTOGRAPHER_ROS_MSG_CONVERSION_H_
