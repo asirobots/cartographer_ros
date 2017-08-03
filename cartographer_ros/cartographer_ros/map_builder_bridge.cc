@@ -43,7 +43,7 @@ MapBuilderBridge::MapBuilderBridge(const NodeOptions& node_options,
     : node_options_(node_options),
       map_builder_(node_options.map_builder_options),
       tf_buffer_(tf_buffer) {
-          last_time.sec = -1;
+      last_time.sec = -1;
     }
 
 void MapBuilderBridge::LoadMap(const std::string& map_filename) {

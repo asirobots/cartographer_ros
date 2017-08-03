@@ -37,7 +37,7 @@ std::unique_ptr<::cartographer::transform::Rigid3d> TfBridge::LookupToTracking(
 
     const auto latest_time = std::chrono::seconds(latest_tf_time.sec) + std::chrono::nanoseconds(latest_tf_time.nanosec);
     const auto requested_time = std::chrono::seconds(requested_tf_time.sec) + std::chrono::nanoseconds(requested_tf_time.nanosec);
-    tf2::Duration timeout(int64_t(lookup_transform_timeout_sec_ * 1000000000.0));
+    tf2::Duration timeout(tf2::Duration::rep(lookup_transform_timeout_sec_ * 1000000000.0));
     if (latest_time >= requested_time) {
       // We already have newer data, so we do not wait. Otherwise, we would wait
       // for the full 'timeout' even if we ask for data that is too old.

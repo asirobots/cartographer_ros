@@ -31,7 +31,8 @@ DEFINE_string(configuration_directory, "",
 DEFINE_string(configuration_basename, "",
               "Basename, i.e. not containing any directory prefix, of the "
               "configuration file.");
-DEFINE_string(map_filename, "", "If non-empty, filename of a map to load.");
+DEFINE_string(map_filename_to_load, "", "If non-empty, filename of a map to load.");
+DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to save on exit (Ctrl+C).");
 
 namespace cartographer_ros {
 
@@ -66,7 +67,7 @@ std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
 
 void Run() {
   const auto options = LoadOptions();
-  constexpr int64_t kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
+  constexpr ::tf2::Duration::rep kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
   tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
   tf2_ros::TransformListener tf(tf_buffer);
   NodeOptions node_options;
@@ -74,14 +75,18 @@ void Run() {
   std::tie(node_options, trajectory_options) = LoadOptions();
 
   Node node(node_options, &tf_buffer);
-  if (!FLAGS_map_filename.empty()) {
-    node.LoadMap(FLAGS_map_filename);
+  if (!FLAGS_map_filename_to_load.empty()) {
+    node.LoadMap(FLAGS_map_filename_to_load);
   }
   node.StartTrajectoryWithDefaultTopics(trajectory_options);
 
   rclcpp::spin(node.node_handle());
 
   node.FinishAllTrajectories();
+
+  if (!FLAGS_map_filename_to_store.empty()) {
+    node.SerializeState(FLAGS_map_filename_to_store);
+  }
 }
 
 }  // namespace cartographer_ros
@@ -96,7 +101,6 @@ int main(int argc, char** argv) {
       << "-configuration_basename is missing.";
 
   ::rclcpp::init(argc, argv);
-
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   cartographer_ros::Run();
   ::rclcpp::shutdown();

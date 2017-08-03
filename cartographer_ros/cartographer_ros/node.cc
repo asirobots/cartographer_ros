@@ -110,8 +110,8 @@ Node::Node(const NodeOptions& node_options, tf2_ros::Buffer* const tf_buffer)
       node_handle_->create_publisher<sensor_msgs::msg::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
 
-    lean_pose_publisher = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
-            "cartographer_pose", rmw_qos_profile_default);
+  lean_pose_publisher = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
+      "cartographer_pose", rmw_qos_profile_default);
 
 
   wall_timers_.push_back(node_handle_->create_wall_timer(
@@ -226,6 +226,7 @@ void Node::PublishTrajectoryStates() {
             tracking_to_map * (*trajectory_state.published_to_tracking));
         tf_broadcaster_->sendTransform(stamped_transform);
       }
+
       localization_msgs::msg::Pose2DWithCovarianceRelativeStamped poseMsg;
       poseMsg.header.stamp = stamped_transform.header.stamp;
       poseMsg.header.frame_id = node_options_.map_frame;
