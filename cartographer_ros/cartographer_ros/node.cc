@@ -243,8 +243,14 @@ void Node::PublishTrajectoryStates() {
       auto q3 = orientation.z();
       poseMsg.pose2d.theta = std::atan2(2.0 * (q3 * q0 + q1 * q2), -1.0 + 2.0 * (q0 * q0 + q1 * q1));
 
-      poseMsg.position_covariance = {0.05, 0.0, 0.05};
-      poseMsg.yaw_covariance = 0.15;
+      if (trajectory_state.trajectory_options.trajectory_builder_options.pure_localization()) {
+        poseMsg.position_covariance = {0.02, 0.0, 0.02};
+        poseMsg.yaw_covariance = 0.04;
+      }
+      else {
+        poseMsg.position_covariance = {0.08, 0.0, 0.08};
+        poseMsg.yaw_covariance = 0.16;
+      }
 
       lean_pose_publisher->publish(poseMsg);
 
