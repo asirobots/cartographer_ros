@@ -129,7 +129,6 @@ Node::Node(const double resolution, ::rclcpp::Node::SharedPtr node_handle)
 
   auto qos = rmw_qos_profile_default;
   qos.depth = kLatestOnlyPublisherQueueSize;
-  qos.durability = rmw_qos_durability_policy_t::RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
   submap_list_subscriber_ = node_handle_->create_subscription<cartographer_ros_msgs::msg::SubmapList>(
           kSubmapListTopic,
           [this](cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg) {
