@@ -19,7 +19,7 @@
 
 #include "cartographer/common/configuration_file_resolver.h"
 #include "cartographer/common/make_unique.h"
-#include "cartographer_ros/node.h"
+#include "cartographer_ros/asi_node.h"
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "tf2_ros/transform_listener.h"
@@ -74,7 +74,7 @@ void Run() {
   TrajectoryOptions trajectory_options;
   std::tie(node_options, trajectory_options) = LoadOptions();
 
-  Node node(node_options, &tf_buffer);
+  AsiNode node(node_options, &tf_buffer);
   if (!FLAGS_map_filename_to_load.empty()) {
     node.LoadMap(FLAGS_map_filename_to_load);
   }

@@ -110,10 +110,6 @@ Node::Node(const NodeOptions& node_options, tf2_ros::Buffer* const tf_buffer)
       node_handle_->create_publisher<sensor_msgs::msg::PointCloud2>(
           kScanMatchedPointCloudTopic, kLatestOnlyPublisherQueueSize);
 
-  lean_pose_publisher = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
-      "cartographer_pose", rmw_qos_profile_default);
-
-
   wall_timers_.push_back(node_handle_->create_wall_timer(
       std::chrono::milliseconds(int(node_options_.submap_publish_period_sec*1000)),
       std::bind(&Node::PublishSubmapList, this)));
@@ -140,9 +136,6 @@ bool Node::HandleSubmapQuery(const std::shared_ptr<::rmw_request_id_t>,
   map_builder_bridge_.HandleSubmapQuery(request, response);
   return true;
 }
-
-MapBuilderBridge* Node::map_builder_bridge() { return &map_builder_bridge_; }
-
 
 void Node::PublishSubmapList() {
   carto::common::MutexLocker lock(&mutex_);
@@ -227,33 +220,7 @@ void Node::PublishTrajectoryStates() {
         tf_broadcaster_->sendTransform(stamped_transform);
       }
 
-      localization_msgs::msg::Pose2DWithCovarianceRelativeStamped poseMsg;
-      poseMsg.header.stamp = stamped_transform.header.stamp;
-      poseMsg.header.frame_id = node_options_.map_frame;
-      poseMsg.child_frame_id = trajectory_state.trajectory_options.odom_frame;
-
-      auto &orientation = tracking_to_local.rotation();
-      auto &position = tracking_to_local.translation();
-      poseMsg.pose2d.x = position.x();
-      poseMsg.pose2d.y = position.y();
-      // float yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1)); for q0 = w, q1 = x
-      auto q0 = orientation.w();
-      auto q1 = orientation.x();
-      auto q2 = orientation.y();
-      auto q3 = orientation.z();
-      poseMsg.pose2d.theta = std::atan2(2.0 * (q3 * q0 + q1 * q2), -1.0 + 2.0 * (q0 * q0 + q1 * q1));
-
-      if (trajectory_state.trajectory_options.trajectory_builder_options.pure_localization()) {
-        poseMsg.position_covariance = {0.02, 0.0, 0.02};
-        poseMsg.yaw_covariance = 0.04;
-      }
-      else {
-        poseMsg.position_covariance = {0.08, 0.0, 0.08};
-        poseMsg.yaw_covariance = 0.16;
-      }
-
-      lean_pose_publisher->publish(poseMsg);
-
+      PublishOtherOdometry(stamped_transform.header.stamp, trajectory_state, tracking_to_local);
     }
   }
 }
@@ -534,6 +501,12 @@ void Node::SerializeState(const string& filename) {
 void Node::LoadMap(const std::string& map_filename) {
   carto::common::MutexLocker lock(&mutex_);
   map_builder_bridge_.LoadMap(map_filename);
+}
+
+void Node::PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &,
+                                const MapBuilderBridge::TrajectoryState &,
+                                const cartographer::transform::Rigid3d &) {
+
 }
 
 }  // namespace cartographer_ros

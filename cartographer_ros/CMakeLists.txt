@@ -21,6 +21,7 @@ if(NOT WIN32)
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(asiframework REQUIRED)
 find_package(asiframework_msgs REQUIRED)
 find_package(cartographer REQUIRED)
 find_package(cartographer_ros_msgs REQUIRED)
@@ -76,6 +77,7 @@ set(GTEST_INCLUDE_DIRS ${GMOCK_INCLUDE_DIRS})
 set(GTEST_LIBRARIES ${GMOCK_LIBRARIES})
 
 set(ALL_SRCS
+  "cartographer_ros/asi_node.cc"
   "cartographer_ros/map_builder_bridge.cc"
   "cartographer_ros/msg_conversion.cc"
   "cartographer_ros/node.cc"

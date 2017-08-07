@@ -38,8 +38,6 @@
 #include "cartographer_ros_msgs/msg/submap_entry.hpp"
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
 
-#include "localization_msgs/msg/pose2_d_with_covariance_relative_stamped.hpp"
-
 #include "tf2_ros/transform_broadcaster.h"
 
 namespace cartographer_ros {
@@ -91,9 +89,8 @@ class Node {
   void LoadMap(const std::string& map_filename);
 
   rclcpp::node::Node::SharedPtr node_handle();
-  MapBuilderBridge* map_builder_bridge();
 
- private:
+ protected:
   bool HandleSubmapQuery(const std::shared_ptr<::rmw_request_id_t> request_id,
       cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
       cartographer_ros_msgs::srv::SubmapQuery::Response::SharedPtr response);
@@ -107,13 +104,13 @@ class Node {
       cartographer_ros_msgs::srv::WriteState::Request::SharedPtr request,
       cartographer_ros_msgs::srv::WriteState::Response::SharedPtr response);
   // Returns the set of topic names we want to subscribe to.
-  std::unordered_set<string> ComputeExpectedTopics(
+  virtual std::unordered_set<string> ComputeExpectedTopics(
       const TrajectoryOptions& options,
       const cartographer_ros_msgs::msg::SensorTopics& topics);
 
-    int AddTrajectory(const TrajectoryOptions& options,
+  int AddTrajectory(const TrajectoryOptions& options,
                     const cartographer_ros_msgs::msg::SensorTopics& topics);
-  void LaunchSubscribers(const TrajectoryOptions& options,
+  virtual void LaunchSubscribers(const TrajectoryOptions& options,
                          const cartographer_ros_msgs::msg::SensorTopics& topics,
                          int trajectory_id);
   void PublishSubmapList();
@@ -124,6 +121,11 @@ class Node {
   bool ValidateTrajectoryOptions(const TrajectoryOptions& options);
   bool ValidateTopicNames(const ::cartographer_ros_msgs::msg::SensorTopics& topics,
                          const TrajectoryOptions& options);
+
+  virtual void PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &timestamp,
+                                    const MapBuilderBridge::TrajectoryState &trajectory_state,
+                                    const cartographer::transform::Rigid3d &tracking_to_local);
+
 
   const NodeOptions node_options_;
 
@@ -152,8 +154,6 @@ class Node {
   // We have to keep the timer handles of ::ros::WallTimers around, otherwise
   // they do not fire.
   std::vector<::rclcpp::TimerBase::SharedPtr> wall_timers_;
-  std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> lean_pose_publisher;
-  rclcpp::SubscriptionBase::SharedPtr asi_clock_subscriber_;
 };
 
 }  // namespace cartographer_ros

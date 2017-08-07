@@ -78,14 +78,14 @@ std::unique_ptr<::cartographer::sensor::ImuData> SensorBridge::ToImuData(
   if (sensor_to_tracking == nullptr) {
     return nullptr;
   }
-    CHECK(sensor_to_tracking->translation().norm() < 1e-5)
+  auto linear_acceleration = ToEigen(msg->linear_acceleration);
+  CHECK(sensor_to_tracking->translation().norm() < 1e-5 && linear_acceleration.norm() >= 1.e-5)
         << "The IMU frame must be colocated with the tracking frame. "
            "Transforming linear acceleration into the tracking frame will "
            "otherwise be imprecise.";
   return ::cartographer::common::make_unique<::cartographer::sensor::ImuData>(
       ::cartographer::sensor::ImuData{
-          time,
-        sensor_to_tracking->rotation() * ToEigen(msg->linear_acceleration),
+          time, sensor_to_tracking->rotation() * linear_acceleration,
           sensor_to_tracking->rotation() * ToEigen(msg->angular_velocity)});
 }
 

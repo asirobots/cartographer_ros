@@ -16,6 +16,7 @@ set(PACKAGE_LIB_DESTINATION lib)
 set(PACKAGE_BIN_DESTINATION bin)
 
 set(PACKAGE_DEPS
+        "asiframework"
         "asiframework_msgs"
         "cartographer"
         "cartographer_ros_msgs"

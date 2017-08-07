@@ -15,7 +15,7 @@
  */
 
 #include "cartographer_ros/submap.h"
-
+#include "rclcpp/rclcpp.hpp"
 #include "cartographer/common/make_unique.h"
 #include "cartographer/common/port.h"
 #include "cartographer/transform/transform.h"
@@ -27,7 +27,7 @@ std::unique_ptr<SubmapTexture> FetchSubmapTexture(
     const ::cartographer::mapping::SubmapId& submap_id,
     ::rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client) {
 
-  if (!client->wait_for_service(std::chrono::seconds(3))) {
+  if (!client->wait_for_service(std::chrono::seconds(5))) {
     LOG(ERROR) << "Error connecting trajectory service.";
     return nullptr;
   }
@@ -36,10 +36,15 @@ std::unique_ptr<SubmapTexture> FetchSubmapTexture(
   srv->trajectory_id = submap_id.trajectory_id;
   srv->submap_index = submap_id.submap_index;
   auto future = client->async_send_request(srv);
-  auto future_status = future.wait_for(std::chrono::seconds(7));
-  if (future_status != std::future_status::ready) {
-    LOG(ERROR) << "Unable to query trajectory service.";
-    return nullptr;
+  for (int i = 0; i < 5; i++) {
+    auto future_status = future.wait_for(std::chrono::seconds(2));
+    if (future_status == std::future_status::ready)
+      break;
+    if (i == 4) {
+      LOG(ERROR) << "Unable to query trajectory service.";
+      return nullptr;
+    }
+    future = client->async_send_request(srv);
   }
   auto result = future.get();
   std::string compressed_cells(result->cells.begin(),
