@@ -40,8 +40,8 @@ class TfBridge {
   std::unique_ptr<::cartographer::transform::Rigid3d> LookupToTracking(
       ::cartographer::common::Time time, const string& frame_id) const;
 
- private:
   const string tracking_frame_;
+ private:
   const double lookup_transform_timeout_sec_;
   const tf2_ros::Buffer* const buffer_;
 };

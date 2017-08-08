@@ -17,6 +17,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
@@ -98,103 +99,128 @@ void CairoDrawEachSubmap(
 class Node {
  public:
   explicit Node(double resolution, ::rclcpp::Node::SharedPtr node_handle);
-  ~Node() {}
+  ~Node() { wants_exit_ = true; condition_.notify_all(); background_worker_.join(); }
 
   Node(const Node&) = delete;
   Node& operator=(const Node&) = delete;
 
  private:
-  void HandleSubmapList(cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg);
+  void HandleSubmapList(cartographer_ros_msgs::msg::SubmapList::SharedPtr msg);
   void DrawAndPublish(const string& frame_id, builtin_interfaces::msg::Time time);
   void PublishOccupancyGrid(const string& frame_id, builtin_interfaces::msg::Time time,
                             const Eigen::Array2f& origin,
                             const Eigen::Array2i& size,
                             cairo_surface_t* surface);
+  void HandleSubmapListWorker();
 
   const double resolution_;
   ::rclcpp::Node::SharedPtr node_handle_;
+  bool wants_exit_ = false, has_new_msg_ = false;
 
-  ::cartographer::common::Mutex mutex_;
-  ::rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_ GUARDED_BY(mutex_);
-  ::rclcpp::SubscriptionBase::SharedPtr submap_list_subscriber_ GUARDED_BY(mutex_);
-  ::rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_ GUARDED_BY(mutex_);
-  std::map<SubmapId, SubmapState> submaps_ GUARDED_BY(mutex_);
+  std::mutex mutex_;
+  std::condition_variable condition_;
+  rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_;
+  rclcpp::SubscriptionBase::SharedPtr submap_list_subscriber_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
+  std::map<SubmapId, SubmapState> submaps_;
+  cartographer_ros_msgs::msg::SubmapList::SharedPtr last_msg_ = nullptr;
+  std::thread background_worker_;
 };
 
 Node::Node(const double resolution, ::rclcpp::Node::SharedPtr node_handle)
-    : resolution_(resolution), node_handle_(node_handle)
-{
+    : resolution_(resolution), node_handle_(node_handle) {
   client_ = node_handle_->create_client<::cartographer_ros_msgs::srv::SubmapQuery>(
       kSubmapQueryServiceName);
 
   auto qos = rmw_qos_profile_default;
   qos.depth = kLatestOnlyPublisherQueueSize;
   submap_list_subscriber_ = node_handle_->create_subscription<cartographer_ros_msgs::msg::SubmapList>(
-          kSubmapListTopic,
-          [this](cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg) {
-              HandleSubmapList(msg);
-          }, qos);
+      kSubmapListTopic,
+      [this](cartographer_ros_msgs::msg::SubmapList::SharedPtr msg) {
+        HandleSubmapList(msg);
+      }, qos);
 
-   occupancy_grid_publisher_ = node_handle_->create_publisher<::nav_msgs::msg::OccupancyGrid>(
-              kOccupancyGridTopic, qos);
+  occupancy_grid_publisher_ = node_handle_->create_publisher<::nav_msgs::msg::OccupancyGrid>(
+      kOccupancyGridTopic, qos);
 
+  background_worker_ = std::thread([this]() {
+    HandleSubmapListWorker();
+  });
+}
+
+void Node::HandleSubmapListWorker() {
+  while (!wants_exit_) {
+    cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg;
+    {
+      std::unique_lock<std::mutex> locker(mutex_);
+      condition_.wait(locker, [this]{ return wants_exit_ || has_new_msg_; });
+      if (wants_exit_) return;
+      has_new_msg_ = false;
+      msg = last_msg_;
+    }
+    // We do not do any work if nobody listens.
+    if (msg == nullptr || node_handle_->count_subscribers(occupancy_grid_publisher_->get_topic_name()) == 0) {
+      continue;
+    }
+    for (const auto& submap_msg : msg->submap) {
+      const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
+      SubmapState& submap_state = submaps_[id];
+      submap_state.pose = ToRigid3d(submap_msg.pose);
+      submap_state.metadata_version = submap_msg.submap_version;
+      if (submap_state.surface != nullptr &&
+          submap_state.version == submap_msg.submap_version) {
+        continue;
+      }
+
+      auto fetched_texture = ::cartographer_ros::FetchSubmapTexture(id, client_);
+      if (fetched_texture == nullptr) {
+        continue;
+      }
+      submap_state.width = fetched_texture->width;
+      submap_state.height = fetched_texture->height;
+      submap_state.version = fetched_texture->version;
+      submap_state.slice_pose = fetched_texture->slice_pose;
+      submap_state.resolution = fetched_texture->resolution;
+
+      // Properly dealing with a non-common stride would make this code much more
+      // complicated. Let's check that it is not needed.
+      const int expected_stride = 4 * submap_state.width;
+      CHECK_EQ(expected_stride,
+               cairo_format_stride_for_width(kCairoFormat, submap_state.width));
+      submap_state.cairo_data.clear();
+      for (size_t i = 0; i < fetched_texture->intensity.size(); ++i) {
+        // We use the red channel to track intensity information. The green
+        // channel we use to track if a cell was ever observed.
+        const uint8_t intensity = fetched_texture->intensity.at(i);
+        const uint8_t alpha = fetched_texture->alpha.at(i);
+        const uint8_t observed = (intensity == 0 && alpha == 0) ? 0 : 255;
+        submap_state.cairo_data.push_back((alpha << 24) | (intensity << 16) |
+                                          (observed << 8) | 0);
+      }
+
+      submap_state.surface = ::cartographer::io::MakeUniqueCairoSurfacePtr(
+          cairo_image_surface_create_for_data(
+              reinterpret_cast<unsigned char*>(submap_state.cairo_data.data()),
+              kCairoFormat, submap_state.width, submap_state.height,
+              expected_stride));
+      CHECK_EQ(cairo_surface_status(submap_state.surface.get()),
+               CAIRO_STATUS_SUCCESS)
+        << cairo_status_to_string(
+            cairo_surface_status(submap_state.surface.get()));
+    }
+    DrawAndPublish(msg->header.frame_id, msg->header.stamp);
+  }
 }
 
 void Node::HandleSubmapList(
-    cartographer_ros_msgs::msg::SubmapList::ConstSharedPtr msg) {
-  ::cartographer::common::MutexLocker locker(&mutex_);
-
-  // We do not do any work if nobody listens.
-  if (node_handle_->count_subscribers(occupancy_grid_publisher_->get_topic_name()) == 0) {
-    return;
+    cartographer_ros_msgs::msg::SubmapList::SharedPtr msg) {
+  {
+    std::unique_lock<std::mutex> locker(mutex_);
+    last_msg_ = msg;
+    has_new_msg_ = true;
   }
-  for (const auto& submap_msg : msg->submap) {
-    const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
-    SubmapState& submap_state = submaps_[id];
-    submap_state.pose = ToRigid3d(submap_msg.pose);
-    submap_state.metadata_version = submap_msg.submap_version;
-    if (submap_state.surface != nullptr &&
-        submap_state.version == submap_msg.submap_version) {
-      continue;
-    }
-
-    auto fetched_texture = ::cartographer_ros::FetchSubmapTexture(id, client_);
-    if (fetched_texture == nullptr) {
-      continue;
-    }
-    submap_state.width = fetched_texture->width;
-    submap_state.height = fetched_texture->height;
-    submap_state.version = fetched_texture->version;
-    submap_state.slice_pose = fetched_texture->slice_pose;
-    submap_state.resolution = fetched_texture->resolution;
-
-    // Properly dealing with a non-common stride would make this code much more
-    // complicated. Let's check that it is not needed.
-    const int expected_stride = 4 * submap_state.width;
-    CHECK_EQ(expected_stride,
-             cairo_format_stride_for_width(kCairoFormat, submap_state.width));
-    submap_state.cairo_data.clear();
-    for (size_t i = 0; i < fetched_texture->intensity.size(); ++i) {
-      // We use the red channel to track intensity information. The green
-      // channel we use to track if a cell was ever observed.
-      const uint8_t intensity = fetched_texture->intensity.at(i);
-      const uint8_t alpha = fetched_texture->alpha.at(i);
-      const uint8_t observed = (intensity == 0 && alpha == 0) ? 0 : 255;
-      submap_state.cairo_data.push_back((alpha << 24) | (intensity << 16) |
-                                        (observed << 8) | 0);
-    }
-
-    submap_state.surface = ::cartographer::io::MakeUniqueCairoSurfacePtr(
-        cairo_image_surface_create_for_data(
-            reinterpret_cast<unsigned char*>(submap_state.cairo_data.data()),
-            kCairoFormat, submap_state.width, submap_state.height,
-            expected_stride));
-    CHECK_EQ(cairo_surface_status(submap_state.surface.get()),
-             CAIRO_STATUS_SUCCESS)
-        << cairo_status_to_string(
-               cairo_surface_status(submap_state.surface.get()));
-  }
-  DrawAndPublish(msg->header.frame_id, msg->header.stamp);
+  // we can't call FetchSubmapTexture on this thread
+  condition_.notify_one();
 }
 
 void Node::DrawAndPublish(const string& frame_id, builtin_interfaces::msg::Time time) {

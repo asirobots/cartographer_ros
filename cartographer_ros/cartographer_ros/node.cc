@@ -47,16 +47,6 @@ namespace cartographer_ros {
 
 namespace {
 
-cartographer_ros_msgs::msg::SensorTopics DefaultSensorTopics() {
-  cartographer_ros_msgs::msg::SensorTopics topics;
-  topics.laser_scan_topic = kLaserScanTopic;
-  topics.multi_echo_laser_scan_topic = kMultiEchoLaserScanTopic;
-  topics.point_cloud2_topic = kPointCloud2Topic;
-  topics.imu_topic = kImuTopic;
-  topics.odometry_topic = kOdometryTopic;
-  return topics;
-}
-
 // Subscribes to the 'topic' for 'trajectory_id' using the 'node_handle' and
 // calls 'handler' on the 'node' to handle messages. Returns the subscriber.
 template <typename MessageType>
@@ -79,6 +69,16 @@ namespace carto = ::cartographer;
 
 using carto::transform::Rigid3d;
 using namespace std::placeholders;
+
+cartographer_ros_msgs::msg::SensorTopics Node::DefaultSensorTopics() {
+  cartographer_ros_msgs::msg::SensorTopics topics;
+  topics.laser_scan_topic = kLaserScanTopic;
+  topics.multi_echo_laser_scan_topic = kMultiEchoLaserScanTopic;
+  topics.point_cloud2_topic = kPointCloud2Topic;
+  topics.imu_topic = kImuTopic;
+  topics.odometry_topic = kOdometryTopic;
+  return topics;
+}
 
 Node::Node(const NodeOptions& node_options, tf2_ros::Buffer* const tf_buffer)
     : node_options_(node_options),
@@ -264,11 +264,13 @@ std::unordered_set<string> Node::ComputeExpectedTopics(
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
            .use_imu_data())) {
-    expected_topics.insert(topics.imu_topic);
+    if (!topics.imu_topic.empty())
+      expected_topics.insert(topics.imu_topic);
   }
   // Odometry is optional.
   if (options.use_odometry) {
-    expected_topics.insert(topics.odometry_topic);
+    if (!topics.odometry_topic.empty())
+      expected_topics.insert(topics.odometry_topic);
   }
   return expected_topics;
 }
@@ -315,10 +317,10 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
 
   // For 2D SLAM, subscribe to the IMU if we expect it. For 3D SLAM, the IMU is
   // required.
-  if (node_options_.map_builder_options.use_trajectory_builder_3d() ||
+  if ((node_options_.map_builder_options.use_trajectory_builder_3d() ||
       (node_options_.map_builder_options.use_trajectory_builder_2d() &&
        options.trajectory_builder_options.trajectory_builder_2d_options()
-           .use_imu_data())) {
+           .use_imu_data())) && !topics.imu_topic.empty()) {
     string topic = topics.imu_topic;
     subscribers_[trajectory_id].push_back(
         SubscribeWithHandler<sensor_msgs::msg::Imu>(&Node::HandleImuMessage,
@@ -326,7 +328,7 @@ void Node::LaunchSubscribers(const TrajectoryOptions& options,
                                                node_handle_, this));
   }
 
-  if (options.use_odometry) {
+  if (options.use_odometry && !topics.odometry_topic.empty()) {
     string topic = topics.odometry_topic;
     subscribers_[trajectory_id].push_back(
         SubscribeWithHandler<nav_msgs::msg::Odometry>(&Node::HandleOdometryMessage,

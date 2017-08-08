@@ -91,6 +91,7 @@ class Node {
   rclcpp::node::Node::SharedPtr node_handle();
 
  protected:
+  virtual cartographer_ros_msgs::msg::SensorTopics DefaultSensorTopics();
   bool HandleSubmapQuery(const std::shared_ptr<::rmw_request_id_t> request_id,
       cartographer_ros_msgs::srv::SubmapQuery::Request::SharedPtr request,
       cartographer_ros_msgs::srv::SubmapQuery::Response::SharedPtr response);

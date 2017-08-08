@@ -17,19 +17,21 @@ namespace cartographer_ros {
   public:
     AsiNode(const NodeOptions &node_options, tf2_ros::Buffer *tf_buffer);
 
-    virtual void PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &timestamp,
-                                      const MapBuilderBridge::TrajectoryState &trajectory_state,
-                                      const cartographer::transform::Rigid3d &tracking_to_local);
-
-    virtual void LaunchSubscribers(const TrajectoryOptions &options,
-                                   const cartographer_ros_msgs::msg::SensorTopics &topics,
-                                   int trajectory_id);
-
-    virtual std::unordered_set<string> ComputeExpectedTopics(
-      const TrajectoryOptions &options,
-      const cartographer_ros_msgs::msg::SensorTopics &topics);
-
   protected:
+    cartographer_ros_msgs::msg::SensorTopics DefaultSensorTopics() override;
+
+    void PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &timestamp,
+                                      const MapBuilderBridge::TrajectoryState &trajectory_state,
+                                      const cartographer::transform::Rigid3d &tracking_to_local) override;
+
+    void LaunchSubscribers(const TrajectoryOptions &options,
+                                   const cartographer_ros_msgs::msg::SensorTopics &topics,
+                                   int trajectory_id) override;
+
+    std::unordered_set<string> ComputeExpectedTopics(
+        const TrajectoryOptions &options,
+        const cartographer_ros_msgs::msg::SensorTopics &topics) override;
+
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> lean_pose_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>> velocity_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyAccelWithCovarianceLeanStamped>> acceleration_publisher_ = nullptr;

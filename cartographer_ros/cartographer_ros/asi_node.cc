@@ -24,6 +24,8 @@ DEFINE_string(asi_twistlean_input_topic, "", "Input topic for localization_msgs:
 
 DEFINE_string(asi_clock_input_topic, "", "Input topic for asiframework::AsiTime");
 
+DEFINE_bool(disable_default_imu_topic, true, "By default, the default IMU topic is disabled");
+
 cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_options, tf2_ros::Buffer *tf_buffer)
     : Node(node_options, tf_buffer) {
 
@@ -101,7 +103,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
   if (!FLAGS_asi_clock_input_topic.empty()) {
     asi_clock_subscriber_ = node_handle()->create_subscription<asiframework_msgs::msg::AsiTime>(
         FLAGS_asi_clock_input_topic,
-        [&](asiframework_msgs::msg::AsiTime::ConstSharedPtr msg) {
+        [=](asiframework_msgs::msg::AsiTime::ConstSharedPtr msg) {
           map_builder_bridge_.last_time = msg->time;
         });
   }
@@ -110,7 +112,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
     lean_odometry_subscriber_ = node_handle()->
         create_subscription<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
         FLAGS_asi_pose2d_input_topic,
-        [&](localization_msgs::msg::Pose2DWithCovarianceRelativeStamped::ConstSharedPtr lean_msg) {
+        [=](localization_msgs::msg::Pose2DWithCovarianceRelativeStamped::ConstSharedPtr lean_msg) {
 
           if (!std::isnan(lean_msg->pose2d.x)) {
             tf2::Quaternion quaternion;
@@ -137,7 +139,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
     lean_twist_subscriber_ = node_handle()->
         create_subscription<localization_msgs::msg::BodyVelocityStamped>(
         FLAGS_asi_twistlean_input_topic,
-        [&](localization_msgs::msg::BodyVelocityStamped::ConstSharedPtr lean_msg) {
+        [=](localization_msgs::msg::BodyVelocityStamped::ConstSharedPtr lean_msg) {
 
           auto twist_time = framework::toSecondsAsDouble(lean_msg->header.stamp);
           auto dt = twist_time - last_twist_time_;
@@ -149,12 +151,10 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
             msg->angular_velocity.x = std::isnan(lean_msg->twist.angular.x) ? 0.0 : lean_msg->twist.angular.x;
             msg->angular_velocity.y = std::isnan(lean_msg->twist.angular.y) ? 0.0 : lean_msg->twist.angular.y;
             msg->angular_velocity.z = std::isnan(lean_msg->twist.angular.z) ? 0.0 : lean_msg->twist.angular.z;
-            if (options.tracking_frame == lean_msg->header.frame_id) {
-              msg->linear_acceleration.x = std::isnan(lean_msg->twist.linear.x) ? 0.0 : lean_msg->twist.linear.x / dt;
-              msg->linear_acceleration.y = std::isnan(lean_msg->twist.linear.y) ? 0.0 : lean_msg->twist.linear.y / dt;
-              msg->linear_acceleration.z = std::isnan(lean_msg->twist.linear.z) ? 0.0 : lean_msg->twist.linear.z / dt;
-            } else
-              msg->linear_acceleration.x = msg->linear_acceleration.y = msg->linear_acceleration.z = 0.0;
+            msg->linear_acceleration.x = std::isnan(lean_msg->twist.linear.x) ? 0.0 : lean_msg->twist.linear.x / dt;
+            msg->linear_acceleration.y = std::isnan(lean_msg->twist.linear.y) ? 0.0 : lean_msg->twist.linear.y / dt;
+            msg->linear_acceleration.z = std::isnan(lean_msg->twist.linear.z) ? 0.0 : lean_msg->twist.linear.z / dt;
+            msg->linear_acceleration.z += 9.81;
             // msg->*_covariance not used
             // msg->orientation not used
 
@@ -168,15 +168,12 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
     lean_imu_subscriber_ = node_handle()->
         create_subscription<localization_msgs::msg::ImuLeanStamped>(
         FLAGS_asi_imulean_input_topic,
-        [&](localization_msgs::msg::ImuLeanStamped::ConstSharedPtr lean_msg) {
+        [=](localization_msgs::msg::ImuLeanStamped::ConstSharedPtr lean_msg) {
 
           auto msg = std::make_shared<sensor_msgs::msg::Imu>();
           msg->header = lean_msg->header;
           msg->angular_velocity = lean_msg->imu.angular_rates;
-          if (options.tracking_frame == lean_msg->header.frame_id)
-            msg->linear_acceleration = lean_msg->imu.linear_acceleration;
-          else
-            msg->linear_acceleration.x = msg->linear_acceleration.y = msg->linear_acceleration.z = 0.0;
+          msg->linear_acceleration = lean_msg->imu.linear_acceleration;
           // msg->*_covariance not used
           // msg->orientation not used
 
@@ -197,4 +194,11 @@ cartographer_ros::AsiNode::ComputeExpectedTopics(const cartographer_ros::Traject
   if (!FLAGS_asi_imulean_input_topic.empty())
     ret.insert(FLAGS_asi_imulean_input_topic);
   return ret;
+}
+
+cartographer_ros_msgs::msg::SensorTopics cartographer_ros::AsiNode::DefaultSensorTopics() {
+  auto topics = Node::DefaultSensorTopics();
+  if (FLAGS_disable_default_imu_topic)
+    topics.imu_topic = "";
+  return topics;
 }

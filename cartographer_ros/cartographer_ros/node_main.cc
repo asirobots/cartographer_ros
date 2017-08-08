@@ -66,8 +66,7 @@ std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
 }
 
 void Run() {
-  const auto options = LoadOptions();
-  constexpr ::tf2::Duration::rep kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
+  constexpr ::tf2 ::Duration::rep kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
   tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
   tf2_ros::TransformListener tf(tf_buffer);
   NodeOptions node_options;

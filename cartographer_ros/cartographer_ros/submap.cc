@@ -36,15 +36,12 @@ std::unique_ptr<SubmapTexture> FetchSubmapTexture(
   srv->trajectory_id = submap_id.trajectory_id;
   srv->submap_index = submap_id.submap_index;
   auto future = client->async_send_request(srv);
-  for (int i = 0; i < 5; i++) {
-    auto future_status = future.wait_for(std::chrono::seconds(2));
-    if (future_status == std::future_status::ready)
-      break;
-    if (i == 4) {
-      LOG(ERROR) << "Unable to query trajectory service.";
-      return nullptr;
-    }
-    future = client->async_send_request(srv);
+  auto status = future.wait_for(std::chrono::seconds(7));
+  // NOTE: you cannot call this from the same thread that is running the node spinner!
+  // this will block that thread and it won't complete with out spinning!
+  if (status != std::future_status::ready) {
+    LOG(ERROR) << "Error querying trajectory service.";
+    return nullptr;
   }
   auto result = future.get();
   std::string compressed_cells(result->cells.begin(),
