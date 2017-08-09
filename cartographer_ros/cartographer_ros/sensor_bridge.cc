@@ -81,10 +81,12 @@ std::unique_ptr<::cartographer::sensor::ImuData> SensorBridge::ToImuData(
   auto acceleration = ToEigen(msg->linear_acceleration);
   auto velocity = ToEigen(msg->angular_velocity); // aka, omega
   auto& translation = sensor_to_tracking->translation();
+
   if (translation.norm() >= 1e-5) {
     // difference = ang_vel x (ang_vel x translation) + ang_vel' x translation
     // the derivative term should be small; we'll ignore it for now
-    acceleration += velocity.cross(velocity.cross(translation));
+    auto difference = velocity.cross(velocity.cross(translation));
+    acceleration += difference;
   }
   return ::cartographer::common::make_unique<::cartographer::sensor::ImuData>(
       ::cartographer::sensor::ImuData{

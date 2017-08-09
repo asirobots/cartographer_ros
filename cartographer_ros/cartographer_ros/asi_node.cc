@@ -147,14 +147,15 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
           if (dt > 0.0 && !std::isnan(lean_msg->twist.linear.x)) {
             auto msg = std::make_shared<sensor_msgs::msg::Imu>();
             msg->header = lean_msg->header;
-            // I don't know if NaNs would hurt it, but I know that we have some coming in...
-            msg->angular_velocity.x = std::isnan(lean_msg->twist.angular.x) ? 0.0 : lean_msg->twist.angular.x;
-            msg->angular_velocity.y = std::isnan(lean_msg->twist.angular.y) ? 0.0 : lean_msg->twist.angular.y;
-            msg->angular_velocity.z = std::isnan(lean_msg->twist.angular.z) ? 0.0 : lean_msg->twist.angular.z;
-            msg->linear_acceleration.x = std::isnan(lean_msg->twist.linear.x) ? 0.0 : lean_msg->twist.linear.x / dt;
-            msg->linear_acceleration.y = std::isnan(lean_msg->twist.linear.y) ? 0.0 : lean_msg->twist.linear.y / dt;
-            msg->linear_acceleration.z = std::isnan(lean_msg->twist.linear.z) ? 0.0 : lean_msg->twist.linear.z / dt;
-            msg->linear_acceleration.z += 9.81;
+
+            msg->angular_velocity.z = lean_msg->twist.angular.z;
+            msg->linear_acceleration.x = (lean_msg->twist.linear.x - last_linear_x_) / dt;
+            last_linear_x_ = lean_msg->twist.linear.x;
+
+            msg->angular_velocity.x = 0.0;
+            msg->angular_velocity.y = 0.0;
+            msg->linear_acceleration.y = 0.0;
+            msg->linear_acceleration.z = 9.81;
             // msg->*_covariance not used
             // msg->orientation not used
 
