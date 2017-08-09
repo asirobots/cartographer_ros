@@ -17,6 +17,7 @@
 #include <cartographer_ros_msgs/msg/trajectory_options.hpp>
 #include "cartographer_ros/trajectory_options.h"
 
+#include "cartographer/mapping/trajectory_builder.h"
 #include "glog/logging.h"
 
 namespace cartographer_ros {

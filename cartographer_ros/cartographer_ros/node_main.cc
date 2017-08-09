@@ -32,38 +32,9 @@ DEFINE_string(configuration_basename, "",
               "Basename, i.e. not containing any directory prefix, of the "
               "configuration file.");
 DEFINE_string(map_filename_to_load, "", "If non-empty, filename of a map to load.");
-DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to save on exit (Ctrl+C).");
+DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to save on exit (Ctrl+C or SIGINT).");
 
 namespace cartographer_ros {
-
-std::vector<std::string> SplitString(const std::string& text, const std::string& delims)
-{
-    std::vector<std::string> tokens;
-    std::size_t start = text.find_first_not_of(delims), end = 0;
-
-    while((end = text.find_first_of(delims, start)) != std::string::npos)
-    {
-        tokens.push_back(text.substr(start, end - start));
-        start = text.find_first_not_of(delims, end);
-    }
-    if(start != std::string::npos)
-        tokens.push_back(text.substr(start));
-
-    return tokens;
-}
-
-std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
-  auto file_resolver = cartographer::common::make_unique<
-      cartographer::common::ConfigurationFileResolver>(
-      SplitString(FLAGS_configuration_directory, ":"));
-  const string code =
-      file_resolver->GetFileContentOrDie(FLAGS_configuration_basename);
-  cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
-      code, std::move(file_resolver));
-
-  return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
-                         CreateTrajectoryOptions(&lua_parameter_dictionary));
-}
 
 void Run() {
   constexpr ::tf2 ::Duration::rep kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
@@ -71,7 +42,8 @@ void Run() {
   tf2_ros::TransformListener tf(tf_buffer);
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
-  std::tie(node_options, trajectory_options) = LoadOptions();
+  std::tie(node_options, trajectory_options) =
+      LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
 
   AsiNode node(node_options, &tf_buffer);
   if (!FLAGS_map_filename_to_load.empty()) {

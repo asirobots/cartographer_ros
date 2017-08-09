@@ -16,13 +16,10 @@
 
 #include <time.h>
 #include <chrono>
-#include <csignal>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "cartographer/common/configuration_file_resolver.h"
-#include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/common/make_unique.h"
 #include "cartographer/common/port.h"
 #include "cartographer_ros/node.h"
@@ -54,6 +51,9 @@ DEFINE_bool(use_bag_transforms, true,
             "Whether to read, use and republish the transforms from the bag.");
 DEFINE_string(pbstream_filename, "",
               "If non-empty, filename of a pbstream to load.");
+DEFINE_bool(keep_running, false,
+            "Keep running the offline node after all messages from the bag "
+            "have been processed.");
 
 namespace cartographer_ros {
 namespace {
@@ -61,32 +61,16 @@ namespace {
 constexpr char kClockTopic[] = "clock";
 constexpr char kTfStaticTopic[] = "/tf_static";
 constexpr char kTfTopic[] = "tf";
-
-volatile std::sig_atomic_t sigint_triggered = 0;
-
-void SigintHandler(int) { sigint_triggered = 1; }
-
-// TODO(hrapp): This is duplicated in node_main.cc. Pull out into a config
-// unit.
-std::tuple<NodeOptions, TrajectoryOptions> LoadOptions() {
-  auto file_resolver = cartographer::common::make_unique<
-      cartographer::common::ConfigurationFileResolver>(
-      std::vector<string>{FLAGS_configuration_directory});
-  const string code =
-      file_resolver->GetFileContentOrDie(FLAGS_configuration_basename);
-  cartographer::common::LuaParameterDictionary lua_parameter_dictionary(
-      code, std::move(file_resolver));
-
-  return std::make_tuple(CreateNodeOptions(&lua_parameter_dictionary),
-                         CreateTrajectoryOptions(&lua_parameter_dictionary));
-}
+constexpr double kClockPublishFrequencySec = 1. / 30.;
+constexpr int kSingleThreaded = 1;
 
 void Run(const std::vector<string>& bag_filenames) {
   const std::chrono::time_point<std::chrono::steady_clock> start_time =
       std::chrono::steady_clock::now();
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
-  std::tie(node_options, trajectory_options) = LoadOptions();
+  std::tie(node_options, trajectory_options) =
+      LoadOptions(FLAGS_configuration_directory, FLAGS_configuration_basename);
 
   tf2_ros::Buffer tf_buffer;
 
@@ -129,8 +113,18 @@ void Run(const std::vector<string>& bag_filenames) {
     static_tf_broadcaster.sendTransform(urdf_transforms);
   }
 
+  ros::AsyncSpinner async_spinner(kSingleThreaded);
+  async_spinner.start();
+  rosgraph_msgs::Clock clock;
+  auto clock_republish_timer = node.node_handle()->createWallTimer(
+      ::ros::WallDuration(kClockPublishFrequencySec),
+      [&clock_publisher, &clock](const ::ros::WallTimerEvent&) {
+        clock_publisher.publish(clock);
+      },
+      false /* oneshot */, false /* autostart */);
+
   for (const string& bag_filename : bag_filenames) {
-    if (sigint_triggered) {
+    if (!::ros::ok()) {
       break;
     }
 
@@ -148,7 +142,7 @@ void Run(const std::vector<string>& bag_filenames) {
     // because it gets very inefficient with a large one.
     std::deque<rosbag::MessageInstance> delayed_messages;
     for (const rosbag::MessageInstance& msg : view) {
-      if (sigint_triggered) {
+      if (!::ros::ok()) {
         break;
       }
 
@@ -196,11 +190,8 @@ void Run(const std::vector<string>& bag_filenames) {
               trajectory_id, topic,
               delayed_msg.instantiate<nav_msgs::Odometry>());
         }
-        rosgraph_msgs::Clock clock;
         clock.clock = delayed_msg.getTime();
         clock_publisher.publish(clock);
-
-        ::ros::spinOnce();
 
         LOG_EVERY_N(INFO, 100000)
             << "Processed " << (delayed_msg.getTime() - begin_time).toSec()
@@ -218,8 +209,15 @@ void Run(const std::vector<string>& bag_filenames) {
     }
 
     bag.close();
+    // Ensure the clock is republished also during trajectory finalization,
+    // which might take a while.
+    clock_republish_timer.start();
     node.FinishTrajectory(trajectory_id);
+    clock_republish_timer.stop();
   }
+
+  // Republish the clock after bag processing has been completed.
+  clock_republish_timer.start();
 
   const std::chrono::time_point<std::chrono::steady_clock> end_time =
       std::chrono::steady_clock::now();
@@ -237,6 +235,9 @@ void Run(const std::vector<string>& bag_filenames) {
 #endif
 
   node.SerializeState(bag_filenames.front() + ".pbstream");
+  if (FLAGS_keep_running) {
+    ::ros::waitForShutdown();
+  }
 }
 
 }  // namespace
@@ -252,9 +253,7 @@ int main(int argc, char** argv) {
       << "-configuration_basename is missing.";
   CHECK(!FLAGS_bag_filenames.empty()) << "-bag_filenames is missing.";
 
-  std::signal(SIGINT, &::cartographer_ros::SigintHandler);
-  ::ros::init(argc, argv, "cartographer_offline_node",
-              ::ros::init_options::NoSigintHandler);
+  ::ros::init(argc, argv, "cartographer_offline_node");
   ::ros::start();
 
   cartographer_ros::ScopedRosLogSink ros_log_sink;

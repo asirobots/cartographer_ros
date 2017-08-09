@@ -47,20 +47,32 @@ SensorBridge::SensorBridge(
       tf_bridge_(tracking_frame, lookup_transform_timeout_sec, tf_buffer),
       trajectory_builder_(trajectory_builder) {}
 
-void SensorBridge::HandleOdometryMessage(
-    const string& sensor_id, const nav_msgs::msg::Odometry::ConstSharedPtr& msg) {
+std::unique_ptr<::cartographer::sensor::OdometryData>
+SensorBridge::ToOdometryData(nav_msgs::msg::Odometry::ConstSharedPtr msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
   const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
       time, CheckNoLeadingSlash(msg->child_frame_id));
-  if (sensor_to_tracking != nullptr) {
-    trajectory_builder_->AddOdometerData(
-        sensor_id, time,
-        ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse());
+  if (sensor_to_tracking == nullptr) {
+    return nullptr;
+  }
+  return ::cartographer::common::make_unique<
+      ::cartographer::sensor::OdometryData>(
+      ::cartographer::sensor::OdometryData{
+          time, ToRigid3d(msg->pose.pose) * sensor_to_tracking->inverse()});
+}
+
+void SensorBridge::HandleOdometryMessage(
+    const string& sensor_id, nav_msgs::msg::Odometry::ConstSharedPtr msg) {
+  std::unique_ptr<::cartographer::sensor::OdometryData> odometry_data =
+      ToOdometryData(msg);
+  if (odometry_data != nullptr) {
+    trajectory_builder_->AddOdometerData(sensor_id, odometry_data->time,
+                                         odometry_data->pose);
   }
 }
 
 std::unique_ptr<::cartographer::sensor::ImuData> SensorBridge::ToImuData(
-    const sensor_msgs::msg::Imu::ConstSharedPtr& msg) {
+    sensor_msgs::msg::Imu::ConstSharedPtr msg) {
   CHECK_NE(msg->linear_acceleration_covariance[0], -1)
       << "Your IMU data claims to not contain linear acceleration measurements "
          "by setting linear_acceleration_covariance[0] to -1. Cartographer "
@@ -95,7 +107,7 @@ std::unique_ptr<::cartographer::sensor::ImuData> SensorBridge::ToImuData(
 }
 
 void SensorBridge::HandleImuMessage(const string& sensor_id,
-                                    const sensor_msgs::msg::Imu::ConstSharedPtr& msg) {
+                                    sensor_msgs::msg::Imu::ConstSharedPtr msg) {
   std::unique_ptr<::cartographer::sensor::ImuData> imu_data = ToImuData(msg);
   if (imu_data != nullptr) {
     trajectory_builder_->AddImuData(sensor_id, imu_data->time,
@@ -105,7 +117,7 @@ void SensorBridge::HandleImuMessage(const string& sensor_id,
 }
 
 void SensorBridge::HandleLaserScanMessage(
-    const string& sensor_id, const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg) {
+    const string& sensor_id, sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
   HandleLaserScan(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
                   ToPointCloudWithIntensities(*msg).points,
                   msg->time_increment);
@@ -113,14 +125,14 @@ void SensorBridge::HandleLaserScanMessage(
 
 void SensorBridge::HandleMultiEchoLaserScanMessage(
     const string& sensor_id,
-    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg) {
+    sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
   HandleLaserScan(sensor_id, FromRos(msg->header.stamp), msg->header.frame_id,
                   ToPointCloudWithIntensities(*msg).points,
                   msg->time_increment);
 }
 
 void SensorBridge::HandlePointCloud2Message(
-    const string& sensor_id, const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
+    const string& sensor_id, sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
   pcl::PointCloud<pcl::PointXYZ> pcl_point_cloud;
   pcl::fromROSMsg(*msg, pcl_point_cloud);
   carto::sensor::PointCloud point_cloud;

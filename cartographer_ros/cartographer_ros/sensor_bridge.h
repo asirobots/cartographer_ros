@@ -21,6 +21,7 @@
 
 #include "cartographer/mapping/trajectory_builder.h"
 #include "cartographer/sensor/imu_data.h"
+#include "cartographer/sensor/odometry_data.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "cartographer/transform/transform.h"
 #include "cartographer_ros/tf_bridge.h"
@@ -46,19 +47,18 @@ class SensorBridge {
   SensorBridge(const SensorBridge&) = delete;
   SensorBridge& operator=(const SensorBridge&) = delete;
 
-  void HandleOdometryMessage(const string& sensor_id,
-                             const nav_msgs::msg::Odometry::ConstSharedPtr& msg);
-  std::unique_ptr<::cartographer::sensor::ImuData> ToImuData(
-      const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
+  std::unique_ptr<::cartographer::sensor::OdometryData> ToOdometryData(
+      nav_msgs::msg::Odometry::ConstSharedPtr msg);
+  void HandleOdometryMessage(const string& sensor_id, nav_msgs::msg::Odometry::ConstSharedPtr msg);
+  std::unique_ptr<::cartographer::sensor::ImuData> ToImuData(sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void HandleImuMessage(const string& sensor_id,
-                        const sensor_msgs::msg::Imu::ConstSharedPtr& msg);
+                        sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void HandleLaserScanMessage(const string& sensor_id,
-                              const sensor_msgs::msg::LaserScan::ConstSharedPtr& msg);
-  void HandleMultiEchoLaserScanMessage(
-      const string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr& msg);
+                              sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
+  void HandleMultiEchoLaserScanMessage(const string& sensor_id,
+                                       sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg);
   void HandlePointCloud2Message(const string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
+                                sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
 
   const TfBridge& tf_bridge() const;
 
