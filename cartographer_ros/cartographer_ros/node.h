@@ -71,16 +71,16 @@ class Node {
 
   // The following functions handle adding sensor data to a trajectory.
   void HandleOdometryMessage(int trajectory_id, const string& sensor_id,
-                             const nav_msgs::msg::Odometry::ConstSharedPtr msg);
+                             nav_msgs::msg::Odometry::ConstSharedPtr msg);
   void HandleImuMessage(int trajectory_id, const string& sensor_id,
-                        const sensor_msgs::msg::Imu::ConstSharedPtr msg);
+                        sensor_msgs::msg::Imu::ConstSharedPtr msg);
   void HandleLaserScanMessage(int trajectory_id, const string& sensor_id,
-                              const sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
+                              sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
   void HandleMultiEchoLaserScanMessage(
       int trajectory_id, const string& sensor_id,
-      const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg);
+      sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg);
   void HandlePointCloud2Message(int trajectory_id, const string& sensor_id,
-                                const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
+                                sensor_msgs::msg::PointCloud2::ConstSharedPtr msg);
 
   // Serializes the complete Node state.
   void SerializeState(const string& filename);

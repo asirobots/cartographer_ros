@@ -454,7 +454,7 @@ void Node::FinishTrajectory(const int trajectory_id) {
 
 void Node::HandleOdometryMessage(const int trajectory_id,
                                  const string& sensor_id,
-                                 const nav_msgs::msg::Odometry::ConstSharedPtr msg) {
+                                 nav_msgs::msg::Odometry::ConstSharedPtr msg) {
   carto::common::MutexLocker lock(&mutex_);
   auto sensor_bridge_ptr = map_builder_bridge_.sensor_bridge(trajectory_id);
   auto odometry_data_ptr = sensor_bridge_ptr->ToOdometryData(msg);
@@ -465,7 +465,7 @@ void Node::HandleOdometryMessage(const int trajectory_id,
 }
 
 void Node::HandleImuMessage(const int trajectory_id, const string& sensor_id,
-                            const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
+                            sensor_msgs::msg::Imu::ConstSharedPtr msg) {
   carto::common::MutexLocker lock(&mutex_);
   auto sensor_bridge_ptr = map_builder_bridge_.sensor_bridge(trajectory_id);
   auto imu_data_ptr = sensor_bridge_ptr->ToImuData(msg);
@@ -477,7 +477,7 @@ void Node::HandleImuMessage(const int trajectory_id, const string& sensor_id,
 
 void Node::HandleLaserScanMessage(const int trajectory_id,
                                   const string& sensor_id,
-                                  const sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
+                                  sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
   carto::common::MutexLocker lock(&mutex_);
   map_builder_bridge_.sensor_bridge(trajectory_id)
       ->HandleLaserScanMessage(sensor_id, msg);
@@ -485,7 +485,7 @@ void Node::HandleLaserScanMessage(const int trajectory_id,
 
 void Node::HandleMultiEchoLaserScanMessage(
     int trajectory_id, const string& sensor_id,
-    const sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
+    sensor_msgs::msg::MultiEchoLaserScan::ConstSharedPtr msg) {
   carto::common::MutexLocker lock(&mutex_);
   map_builder_bridge_.sensor_bridge(trajectory_id)
       ->HandleMultiEchoLaserScanMessage(sensor_id, msg);
@@ -493,7 +493,7 @@ void Node::HandleMultiEchoLaserScanMessage(
 
 void Node::HandlePointCloud2Message(
     const int trajectory_id, const string& sensor_id,
-    const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
+    sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
   carto::common::MutexLocker lock(&mutex_);
   map_builder_bridge_.sensor_bridge(trajectory_id)
       ->HandlePointCloud2Message(sensor_id, msg);
