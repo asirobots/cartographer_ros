@@ -40,6 +40,8 @@ namespace cartographer_ros {
     rclcpp::SubscriptionBase::SharedPtr lean_twist_subscriber_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr lean_imu_subscriber_ = nullptr;
 
+    const tf2_ros::Buffer *tf_buffer_;
+
     cartographer::transform::Rigid3d last_twist_odometry_;
     double last_twist_odometry_time_ = std::numeric_limits<double>::infinity();
     cartographer::mapping::TrajectoryBuilder::PoseEstimate last_pose_estimate_;

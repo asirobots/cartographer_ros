@@ -37,8 +37,7 @@ DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to sav
 namespace cartographer_ros {
 
 void Run() {
-  constexpr ::tf2 ::Duration::rep kTfBufferCacheTimeInNs = 1e15; // 1 million seconds
-  tf2_ros::Buffer tf_buffer{::tf2::Duration(kTfBufferCacheTimeInNs)};
+  tf2_ros::Buffer tf_buffer(tf2::BUFFER_CORE_DEFAULT_CACHE_TIME * 100000, false);
   tf2_ros::TransformListener tf(tf_buffer);
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;

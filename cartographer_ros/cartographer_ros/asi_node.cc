@@ -4,9 +4,13 @@
 
 #include "asi_node.h"
 #include "time_conversion.h"
+#include "msg_conversion.h"
+#include "tf2/time.h"
+#include "cartographer/transform/rigid_transform.h"
 #include "asiframework_msgs/msg/asi_time.hpp"
 #include "localization_msgs/msg/body_velocity_stamped.hpp"
 #include "localization_msgs/msg/imu_lean_stamped.hpp"
+#include "localization_msgs/msg/pose_with_covariance_lean_relative_stamped.hpp"
 #include "framework/os/Time.hpp"
 
 DEFINE_string(asi_pose2d_output_topic, "", "Output topic for localization_msgs::Pose2DWithCovarianceRelativeStamped");
@@ -29,6 +33,8 @@ DEFINE_bool(disable_default_imu_topic, true, "By default, the default IMU topic 
 
 cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_options, tf2_ros::Buffer *tf_buffer)
     : Node(node_options, tf_buffer) {
+
+  tf_buffer_ = tf_buffer;
 
   if (!FLAGS_asi_pose2d_output_topic.empty()) {
     lean_pose_publisher_ = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
@@ -104,11 +110,6 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
   last_pose_estimate_ = trajectory_state.pose_estimate;
 }
 
-double DropNaN(double value) {
-  if (std::isnan(value)) return 0.0;
-  return value;
-}
-
 void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::TrajectoryOptions &options,
                                                   const cartographer_ros_msgs::msg::SensorTopics &topics,
                                                   int trajectory_id) {
@@ -124,36 +125,28 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
 
   if (!FLAGS_asi_pose2d_input_topic.empty()) {
     lean_odometry_subscriber_ = node_handle()->
-        create_subscription<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
+        create_subscription<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(
         FLAGS_asi_pose2d_input_topic,
-        [trajectory_id, this](localization_msgs::msg::Pose2DWithCovarianceRelativeStamped::ConstSharedPtr lean_msg) {
+        [trajectory_id, this](localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped::ConstSharedPtr lean_msg) {
 
-          if (!std::isnan(lean_msg->pose2d.x)) {
-            tf2::Quaternion quaternion;
-            quaternion.setRPY(0.0, 0.0, lean_msg->pose2d.theta);
-
+          if (!std::isnan(lean_msg->pose.position.x)) {
             auto msg = std::make_shared<nav_msgs::msg::Odometry>();
             msg->header = lean_msg->header;
             msg->child_frame_id = lean_msg->child_frame_id;
-            msg->pose.pose.position.x = lean_msg->pose2d.x;
-            msg->pose.pose.position.y = lean_msg->pose2d.y;
-            msg->pose.pose.position.z = 0.0;
-            msg->pose.pose.orientation.x = quaternion.getX();
-            msg->pose.pose.orientation.y = quaternion.getY();
-            msg->pose.pose.orientation.z = quaternion.getZ();
-            msg->pose.pose.orientation.w = quaternion.getW();
+            msg->pose.pose = lean_msg->pose;
             // msg->pose.covariance not used
-            // msg->twist not used
             HandleOdometryMessage(trajectory_id, FLAGS_asi_pose2d_input_topic, msg);
           }
         }, rmw_qos_profile_default);
   }
 
   if (!FLAGS_asi_twistlean_input_topic.empty()) {
+    // NOTE: this doesn't actually work yet
+
     lean_twist_subscriber_ = node_handle()->
         create_subscription<localization_msgs::msg::BodyVelocityStamped>(
         FLAGS_asi_twistlean_input_topic,
-        [trajectory_id, this](localization_msgs::msg::BodyVelocityStamped::ConstSharedPtr lean_msg) {
+        [trajectory_id, &options, this](localization_msgs::msg::BodyVelocityStamped::ConstSharedPtr lean_msg) {
           // only the relative position of the odometry is used; we can start it with identity
 
           auto current_twist_odometry_time = framework::toSecondsAsDouble(lean_msg->header.stamp);
@@ -161,20 +154,21 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
           last_twist_odometry_time_ = current_twist_odometry_time;
           if (delta_time > 0.0 && !std::isnan(lean_msg->twist.linear.x)) {
 
-            auto linear_delta = Eigen::Vector3d(DropNaN(lean_msg->twist.linear.x) * delta_time,
-                                                   DropNaN(lean_msg->twist.linear.y) * delta_time,
-                                                   DropNaN(lean_msg->twist.linear.z) * delta_time);
-            auto angular_delta = Eigen::Quaterniond(0.0,
-                                                    DropNaN(lean_msg->twist.angular.x) * delta_time * 0.5, // the .5 is a quaternion thing
-                                                    DropNaN(lean_msg->twist.angular.y) * delta_time * 0.5,
-                                                    DropNaN(lean_msg->twist.angular.z) * delta_time * 0.5);
+            auto rotation_matrix = last_twist_odometry_.rotation().toRotationMatrix();
+            auto translation_estimate = rotation_matrix * Eigen::Vector3d(lean_msg->twist.linear.x, 0.0, 0.0) * delta_time
+                                        + last_twist_odometry_.translation();
 
-            auto rotation_estimate = angular_delta * last_twist_odometry_.rotation();
-            // sufficient if velocity is for the control point itself (otherwise we have to add wx(wxT)):
-            auto translation_estimate = linear_delta + last_twist_odometry_.translation();
+            auto rotation_estimate_vec = rotation_matrix.eulerAngles(0, 1, 2)
+                                       + Eigen::Vector3d(0.0, 0.0, lean_msg->twist.angular.z) * delta_time;
+            auto rotation_estimate = cartographer::transform::RollPitchYaw(
+                rotation_estimate_vec.x(), rotation_estimate_vec.y(), rotation_estimate_vec.z());
+
+            //tf2::TimePoint lookup_time(std::chrono::seconds(lean_msg->header.stamp.sec) + std::chrono::nanoseconds(lean_msg->header.stamp.nanosec));
+            //auto can_use_odom = tf_buffer_->canTransform(options.odom_frame, lean_msg->header.frame_id, lookup_time, tf2::Duration::zero());
 
             auto msg = std::make_shared<nav_msgs::msg::Odometry>();
             msg->header = lean_msg->header;
+            //msg->child_frame_id = can_use_odom ? options.odom_frame : lean_msg->header.frame_id;
             msg->child_frame_id = lean_msg->header.frame_id;
             msg->pose.pose.position.x = translation_estimate.x();
             msg->pose.pose.position.y = translation_estimate.y();
