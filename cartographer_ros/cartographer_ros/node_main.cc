@@ -53,6 +53,7 @@ void Run() {
   rclcpp::spin(node.node_handle());
 
   node.FinishAllTrajectories();
+  node.RunFinalOptimization();
 
   if (!FLAGS_map_filename_to_store.empty()) {
     node.SerializeState(FLAGS_map_filename_to_store);
