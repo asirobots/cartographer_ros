@@ -88,9 +88,12 @@ void MapBuilderBridge::RunFinalOptimization() {
 }
 
 void MapBuilderBridge::SerializeState(const std::string& filename) {
+  // if you see quotes in the output of this, it may be an error:
+  LOG(INFO) << "Writing state to " << filename;
+  errno = 0; // using this old mechanism because we don't want to modify cartographer to make it throw
   cartographer::io::ProtoStreamWriter writer(filename);
   map_builder_.SerializeState(&writer);
-  CHECK(writer.Close()) << "Could not write state.";
+  CHECK(writer.Close()) << "Could not write state. Error: " << strerror(errno);
 }
 
 void MapBuilderBridge::HandleSubmapQuery(

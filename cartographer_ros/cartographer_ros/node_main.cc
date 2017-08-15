@@ -37,8 +37,8 @@ DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to sav
 namespace cartographer_ros {
 
 void Run() {
-  tf2_ros::Buffer tf_buffer(tf2::BUFFER_CORE_DEFAULT_CACHE_TIME * 100000, false);
-  tf2_ros::TransformListener tf(tf_buffer);
+  tf2_ros::Buffer tf_buffer(tf2::Duration(std::chrono::minutes(2)), false); // original timeout was 11 days; that seems overkill (and memory kill)
+  tf2_ros::TransformListener tf(tf_buffer); // makes its own node and thread inside
   NodeOptions node_options;
   TrajectoryOptions trajectory_options;
   std::tie(node_options, trajectory_options) =
@@ -53,7 +53,7 @@ void Run() {
   rclcpp::spin(node.node_handle());
 
   node.FinishAllTrajectories();
-  node.RunFinalOptimization();
+  node.RunFinalOptimization(); // not sure how to wait for this; it seems async
 
   if (!FLAGS_map_filename_to_store.empty()) {
     node.SerializeState(FLAGS_map_filename_to_store);
@@ -74,5 +74,4 @@ int main(int argc, char** argv) {
   ::rclcpp::init(argc, argv);
   cartographer_ros::ScopedRosLogSink ros_log_sink;
   cartographer_ros::Run();
-  ::rclcpp::shutdown();
 }
