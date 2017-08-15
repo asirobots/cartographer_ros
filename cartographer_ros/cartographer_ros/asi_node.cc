@@ -14,6 +14,7 @@
 #include "framework/os/Time.hpp"
 
 DEFINE_string(asi_pose2d_output_topic, "", "Output topic for localization_msgs::Pose2DWithCovarianceRelativeStamped");
+DEFINE_string(asi_pose_output_topic, "", "Output topic for localization_msgs::PoseWithCovarianceLeanRelativeStamped");
 
 DEFINE_string(asi_velocity_output_topic, "",
               "Output topic for localization_msgs::BodyVelocityWithCovarianceLeanStamped");
@@ -37,8 +38,12 @@ cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_opt
   tf_buffer_ = tf_buffer;
 
   if (!FLAGS_asi_pose2d_output_topic.empty()) {
-    lean_pose_publisher_ = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
+    pose2d_publisher_ = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
         FLAGS_asi_pose2d_output_topic, rmw_qos_profile_default);
+  }
+  if (!FLAGS_asi_pose_output_topic.empty()) {
+    pose3d_publisher_ = node_handle_->create_publisher<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(
+        FLAGS_asi_pose_output_topic, rmw_qos_profile_default);
   }
   if (!FLAGS_asi_velocity_output_topic.empty()) {
     velocity_publisher_ = node_handle_->create_publisher<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>(
@@ -60,7 +65,7 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
     localization_msgs::msg::Pose2DWithCovarianceRelativeStamped poseMsg;
     poseMsg.header.stamp = timestamp;
     poseMsg.header.frame_id = node_options_.map_frame;
-    poseMsg.child_frame_id = trajectory_state.trajectory_options.odom_frame;
+    poseMsg.child_frame_id = trajectory_state.trajectory_options.published_frame;
 
     auto &orientation = tracking_to_local.rotation();
     auto &position = tracking_to_local.translation();
@@ -73,15 +78,34 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
     auto q3 = orientation.z();
     poseMsg.pose2d.theta = std::atan2(2.0 * (q3 * q0 + q1 * q2), -1.0 + 2.0 * (q0 * q0 + q1 * q1));
 
-    if (trajectory_state.trajectory_options.trajectory_builder_options.pure_localization()) {
-      poseMsg.position_covariance = {0.02, 0.0, 0.02};
-      poseMsg.yaw_covariance = 0.04;
-    } else {
-      poseMsg.position_covariance = {0.08, 0.0, 0.08};
-      poseMsg.yaw_covariance = 0.16;
-    }
+    poseMsg.position_covariance = {0.05, 0.0, 0.05};
+    poseMsg.yaw_covariance = 0.05;
 
-    lean_pose_publisher_->publish(poseMsg);
+    pose2d_publisher_->publish(poseMsg);
+  }
+
+  if (!FLAGS_asi_pose_output_topic.empty()) {
+
+    localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped poseMsg;
+    poseMsg.header.stamp = timestamp;
+    poseMsg.header.frame_id = node_options_.map_frame;
+    poseMsg.child_frame_id = trajectory_state.trajectory_options.published_frame;
+
+    auto &orientation = tracking_to_local.rotation();
+    auto &position = tracking_to_local.translation();
+    poseMsg.pose.position.x = position.x();
+    poseMsg.pose.position.y = position.y();
+    poseMsg.pose.position.z = position.z();
+    poseMsg.pose.orientation.w = orientation.w();
+    poseMsg.pose.orientation.x = orientation.x();
+    poseMsg.pose.orientation.y = orientation.y();
+    poseMsg.pose.orientation.z = orientation.z();
+
+    // TODO: fix this once cartographer exposes some form of position confidence
+    poseMsg.position_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
+    poseMsg.orientation_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
+
+    pose3d_publisher_->publish(poseMsg);
   }
 
   if (!FLAGS_asi_velocity_output_topic.empty() && last_pose_estimate_.time > cartographer::common::Time::min()) {
