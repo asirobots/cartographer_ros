@@ -40,6 +40,8 @@
 DEFINE_double(resolution, 0.05,
               "Resolution of a grid cell in the published occupancy grid.");
 
+DEFINE_bool(durable, false, "Enable the durability setting 'transient local' for the publisher.");
+
 namespace cartographer_ros {
 namespace {
 
@@ -140,6 +142,8 @@ Node::Node(const double resolution, ::rclcpp::Node::SharedPtr node_handle)
         HandleSubmapList(msg);
       }, qos);
 
+  if (FLAGS_durable)
+    qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
   occupancy_grid_publisher_ = node_handle_->create_publisher<::nav_msgs::msg::OccupancyGrid>(
       kOccupancyGridTopic, qos);
 
