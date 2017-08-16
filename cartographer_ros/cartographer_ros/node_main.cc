@@ -33,6 +33,9 @@ DEFINE_string(configuration_basename, "",
               "configuration file.");
 DEFINE_string(map_filename_to_load, "", "If non-empty, filename of a map to load.");
 DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to save on exit (Ctrl+C or SIGINT).");
+DEFINE_bool(
+    start_trajectory_with_default_topics, true,
+    "Enable to immediately start the first trajectory with default topics.");
 
 namespace cartographer_ros {
 
@@ -48,7 +51,10 @@ void Run() {
   if (!FLAGS_map_filename_to_load.empty()) {
     node.LoadMap(FLAGS_map_filename_to_load);
   }
-  node.StartTrajectoryWithDefaultTopics(trajectory_options);
+
+  if (FLAGS_start_trajectory_with_default_topics) {
+    node.StartTrajectoryWithDefaultTopics(trajectory_options);
+  }
 
   rclcpp::spin(node.node_handle());
 
