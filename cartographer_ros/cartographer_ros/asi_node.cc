@@ -23,6 +23,7 @@ DEFINE_string(asi_acceleration_output_topic, "",
               "Output topic for localization_msgs::BodyAccelWithCovarianceLeanStamped");
 
 DEFINE_string(asi_pose2d_input_topic, "", "Input topic for localization_msgs::Pose2DWithCovarianceRelativeStamped");
+DEFINE_string(asi_pose_input_topic, "", "Input topic for localization_msgs::PoseWithCovarianceLeanRelativeStamped");
 
 DEFINE_string(asi_imulean_input_topic, "", "Input topic for localization_msgs::ImuLeanStamped");
 
@@ -57,8 +58,9 @@ cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_opt
 
 void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &timestamp,
                                                      const cartographer_ros::MapBuilderBridge::TrajectoryState &trajectory_state,
-                                                     const cartographer::transform::Rigid3d &tracking_to_local) {
-  Node::PublishOtherOdometry(timestamp, trajectory_state, tracking_to_local);
+                                                     const cartographer::transform::Rigid3d &tracking_to_local,
+                                                     const cartographer::transform::Rigid3d &tracking_to_map) {
+  Node::PublishOtherOdometry(timestamp, trajectory_state, tracking_to_local, tracking_to_map);
 
   if (!FLAGS_asi_pose2d_output_topic.empty()) {
 
@@ -67,8 +69,9 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
     poseMsg.header.frame_id = node_options_.map_frame;
     poseMsg.child_frame_id = trajectory_state.trajectory_options.published_frame;
 
-    auto &orientation = tracking_to_local.rotation();
-    auto &position = tracking_to_local.translation();
+    auto map_to_publishing = tracking_to_map * (*trajectory_state.published_to_tracking);
+    auto &orientation = map_to_publishing.rotation();
+    auto &position = map_to_publishing.translation();
     poseMsg.pose2d.x = position.x();
     poseMsg.pose2d.y = position.y();
     // float yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1)); for q0 = w, q1 = x
@@ -91,8 +94,9 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
     poseMsg.header.frame_id = node_options_.map_frame;
     poseMsg.child_frame_id = trajectory_state.trajectory_options.published_frame;
 
-    auto &orientation = tracking_to_local.rotation();
-    auto &position = tracking_to_local.translation();
+    auto map_to_publishing = tracking_to_map * (*trajectory_state.published_to_tracking);
+    auto &orientation = map_to_publishing.rotation();
+    auto &position = map_to_publishing.translation();
     poseMsg.pose.position.x = position.x();
     poseMsg.pose.position.y = position.y();
     poseMsg.pose.position.z = position.z();
@@ -122,6 +126,8 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
       velocityMsg->twist.angular.x = delta_pose.rotation().x() * 2.0 / delta_time;
       velocityMsg->twist.angular.y = delta_pose.rotation().y() * 2.0 / delta_time;
       velocityMsg->twist.angular.z = delta_pose.rotation().z() * 2.0 / delta_time;
+      velocityMsg->linear_velocity_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
+      velocityMsg->angular_velocity_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
 
       velocity_publisher_->publish(velocityMsg);
     }
@@ -148,9 +154,36 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
   }
 
   if (!FLAGS_asi_pose2d_input_topic.empty()) {
-    lean_odometry_subscriber_ = node_handle()->
-        create_subscription<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(
+    pose2d_subscriber_ = node_handle()->
+        create_subscription<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
         FLAGS_asi_pose2d_input_topic,
+        [trajectory_id, this](localization_msgs::msg::Pose2DWithCovarianceRelativeStamped::ConstSharedPtr lean_msg) {
+
+          if (!std::isnan(lean_msg->pose2d.x)) {
+            tf2::Quaternion quaternion;
+            quaternion.setRPY(0.0, 0.0, lean_msg->pose2d.theta);
+
+            auto msg = std::make_shared<nav_msgs::msg::Odometry>();
+            msg->header = lean_msg->header;
+            msg->child_frame_id = lean_msg->child_frame_id;
+            msg->pose.pose.position.x = lean_msg->pose2d.x;
+            msg->pose.pose.position.y = lean_msg->pose2d.y;
+            msg->pose.pose.position.z = 0.0;
+            msg->pose.pose.orientation.x = quaternion.getX();
+            msg->pose.pose.orientation.y = quaternion.getY();
+            msg->pose.pose.orientation.z = quaternion.getZ();
+            msg->pose.pose.orientation.w = quaternion.getW();
+            // msg->pose.covariance not used
+            // msg->twist not used
+            HandleOdometryMessage(trajectory_id, FLAGS_asi_pose2d_input_topic, msg);
+          }
+        }, rmw_qos_profile_default);
+  }
+
+  if (!FLAGS_asi_pose_input_topic.empty()) {
+    pose3d_subscriber_ = node_handle()->
+        create_subscription<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(
+        FLAGS_asi_pose_input_topic,
         [trajectory_id, this](localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped::ConstSharedPtr lean_msg) {
 
           if (!std::isnan(lean_msg->pose.position.x)) {
@@ -159,7 +192,8 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
             msg->child_frame_id = lean_msg->child_frame_id;
             msg->pose.pose = lean_msg->pose;
             // msg->pose.covariance not used
-            HandleOdometryMessage(trajectory_id, FLAGS_asi_pose2d_input_topic, msg);
+            // msg->twist not used
+            HandleOdometryMessage(trajectory_id, FLAGS_asi_pose_input_topic, msg);
           }
         }, rmw_qos_profile_default);
   }
@@ -237,6 +271,8 @@ cartographer_ros::AsiNode::ComputeExpectedTopics(const cartographer_ros::Traject
   auto ret = Node::ComputeExpectedTopics(options, topics);
   if (!FLAGS_asi_pose2d_input_topic.empty())
     ret.insert(FLAGS_asi_pose2d_input_topic);
+  if (!FLAGS_asi_pose_input_topic.empty())
+    ret.insert(FLAGS_asi_pose_input_topic);
   if (!FLAGS_asi_twistlean_input_topic.empty())
     ret.insert(FLAGS_asi_twistlean_input_topic);
   if (!FLAGS_asi_imulean_input_topic.empty())

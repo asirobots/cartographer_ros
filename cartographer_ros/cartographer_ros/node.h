@@ -128,7 +128,8 @@ class Node {
 
   virtual void PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &timestamp,
                                     const MapBuilderBridge::TrajectoryState &trajectory_state,
-                                    const cartographer::transform::Rigid3d &tracking_to_local);
+                                    const cartographer::transform::Rigid3d &tracking_to_local,
+                                    const cartographer::transform::Rigid3d &tracking_to_map);
 
 
   const NodeOptions node_options_;

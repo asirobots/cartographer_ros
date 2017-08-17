@@ -220,7 +220,7 @@ void Node::PublishTrajectoryStates() {
         tf_broadcaster_->sendTransform(stamped_transform);
       }
 
-      PublishOtherOdometry(stamped_transform.header.stamp, trajectory_state, tracking_to_local);
+      PublishOtherOdometry(stamped_transform.header.stamp, trajectory_state, tracking_to_local, tracking_to_map);
     }
   }
 }
@@ -524,6 +524,7 @@ void Node::LoadMap(const std::string& map_filename) {
 
 void Node::PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &,
                                 const MapBuilderBridge::TrajectoryState &,
+                                const cartographer::transform::Rigid3d &,
                                 const cartographer::transform::Rigid3d &) {
 
 }

@@ -22,8 +22,9 @@ namespace cartographer_ros {
     cartographer_ros_msgs::msg::SensorTopics DefaultSensorTopics() override;
 
     void PublishOtherOdometry(const std_msgs::msg::Header::_stamp_type &timestamp,
-                                      const MapBuilderBridge::TrajectoryState &trajectory_state,
-                                      const cartographer::transform::Rigid3d &tracking_to_local) override;
+                              const MapBuilderBridge::TrajectoryState &trajectory_state,
+                              const cartographer::transform::Rigid3d &tracking_to_local,
+                              const cartographer::transform::Rigid3d &tracking_to_map) override;
 
     void LaunchSubscribers(const TrajectoryOptions &options,
                                    const cartographer_ros_msgs::msg::SensorTopics &topics,
@@ -38,7 +39,8 @@ namespace cartographer_ros {
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>> velocity_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyAccelWithCovarianceLeanStamped>> acceleration_publisher_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr asi_clock_subscriber_ = nullptr;
-    rclcpp::SubscriptionBase::SharedPtr lean_odometry_subscriber_ = nullptr;
+    rclcpp::SubscriptionBase::SharedPtr pose2d_subscriber_ = nullptr;
+    rclcpp::SubscriptionBase::SharedPtr pose3d_subscriber_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr lean_twist_subscriber_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr lean_imu_subscriber_ = nullptr;
 
