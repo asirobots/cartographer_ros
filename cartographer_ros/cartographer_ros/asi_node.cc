@@ -212,22 +212,22 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
           last_twist_odometry_time_ = current_twist_odometry_time;
           if (delta_time > 0.0 && !std::isnan(lean_msg->twist.linear.x)) {
 
-            auto rotation_matrix = last_twist_odometry_.rotation().toRotationMatrix();
-            auto translation_estimate = rotation_matrix * Eigen::Vector3d(lean_msg->twist.linear.x, 0.0, 0.0) * delta_time
-                                        + last_twist_odometry_.translation();
+            //std::cout << "TWIST: " << lean_msg->twist.linear.x << ", " << lean_msg->twist.angular.z << ", " << delta_time << "\n";
+            //std::cout << "PREV_TRANS_ROT: " << last_twist_odometry_.DebugString() << "\n";
 
-            auto rotation_estimate_vec = rotation_matrix.eulerAngles(0, 1, 2)
-                                       + Eigen::Vector3d(0.0, 0.0, lean_msg->twist.angular.z) * delta_time;
-            auto rotation_estimate = cartographer::transform::RollPitchYaw(
-                rotation_estimate_vec.x(), rotation_estimate_vec.y(), rotation_estimate_vec.z());
+            const auto linear_delta = Eigen::Vector3d(lean_msg->twist.linear.x * delta_time, 0.0, 0.0);
+            const auto angular_delta = cartographer::transform::RollPitchYaw(0.0, 0.0, lean_msg->twist.angular.z * delta_time);
 
-            //tf2::TimePoint lookup_time(std::chrono::seconds(lean_msg->header.stamp.sec) + std::chrono::nanoseconds(lean_msg->header.stamp.nanosec));
-            //auto can_use_odom = tf_buffer_->canTransform(options.odom_frame, lean_msg->header.frame_id, lookup_time, tf2::Duration::zero());
+            const auto translation_estimate = last_twist_odometry_.rotation() * linear_delta + last_twist_odometry_.translation();
+            const auto rotation_estimate = angular_delta * last_twist_odometry_.rotation();
+
+            last_twist_odometry_ = {translation_estimate, rotation_estimate};
 
             auto msg = std::make_shared<nav_msgs::msg::Odometry>();
             msg->header = lean_msg->header;
             //msg->child_frame_id = can_use_odom ? options.odom_frame : lean_msg->header.frame_id;
-            msg->child_frame_id = lean_msg->header.frame_id;
+            //left off: get match maker building, try a different frame and push change to Rigid3d for zero
+            msg->child_frame_id = "base_link"; //options.published_frame;
             msg->pose.pose.position.x = translation_estimate.x();
             msg->pose.pose.position.y = translation_estimate.y();
             msg->pose.pose.position.z = translation_estimate.z();
@@ -237,8 +237,6 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
             msg->pose.pose.orientation.z = rotation_estimate.z();
             // msg->pose.covariance not used
             // msg->twist not used
-
-            last_twist_odometry_ = {translation_estimate, rotation_estimate};
 
             HandleOdometryMessage(trajectory_id, FLAGS_asi_twistlean_input_topic, msg);
           }
