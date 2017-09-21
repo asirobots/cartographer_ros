@@ -100,23 +100,29 @@ void MapBuilderBridge::HandleSubmapQuery(
       ::cartographer_ros_msgs::srv::SubmapQuery::Request::ConstSharedPtr request,
       ::cartographer_ros_msgs::srv::SubmapQuery::Response::SharedPtr response) {
   cartographer::mapping::proto::SubmapQuery::Response response_proto;
-  const std::string error = map_builder_.SubmapToProto(
-      cartographer::mapping::SubmapId{request->trajectory_id,
-                                      request->submap_index},
-      &response_proto);
+  cartographer::mapping::SubmapId submap_id{request.trajectory_id,
+                                            request.submap_index};
+  const std::string error =
+      map_builder_.SubmapToProto(submap_id, &response_proto);
   if (!error.empty()) {
     LOG(ERROR) << error;
     return;
   }
 
-  response->submap_version = response_proto.submap_version();
-  response->cells.insert(response->cells.begin(), response_proto.cells().begin(),
-                        response_proto.cells().end());
-  response->width = response_proto.width();
-  response->height = response_proto.height();
-  response->resolution = response_proto.resolution();
-  response->slice_pose = ToGeometryMsgPose(
-      cartographer::transform::ToRigid3(response_proto.slice_pose()));
+  response.submap_version = response_proto.submap_version();
+  CHECK(response_proto.textures_size() > 0)
+      << "empty textures given for submap: " << submap_id;
+
+  // TODO(gaschler): Forward all textures, not just the first one.
+  const auto& texture_proto = *response_proto.textures().begin();
+  response.cells.insert(response.cells.begin(), texture_proto.cells().begin(),
+                        texture_proto.cells().end());
+  response.width = texture_proto.width();
+  response.height = texture_proto.height();
+  response.resolution = texture_proto.resolution();
+  response.slice_pose = ToGeometryMsgPose(
+      cartographer::transform::ToRigid3(texture_proto.slice_pose()));
+  return true;
 }
 
 cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
@@ -194,10 +200,6 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
       if (node.trimmed()) {
         continue;
       }
-      // In 2D, the pose in node.pose is xy-aligned. Multiplying by
-      // node.constant_data->tracking_to_pose would give the full orientation,
-      // but that is not needed here since we are only interested in the
-      // translational part.
       const ::geometry_msgs::msg::Point node_point =
           ToGeometryMsgPoint(node.pose.translation());
       marker.points.push_back(node_point);
@@ -287,14 +289,10 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetConstraintList() {
         all_submap_data[constraint.submap_id.trajectory_id]
                        [constraint.submap_id.submap_index];
     const auto& submap_pose = submap_data.pose;
-    // Similar to GetTrajectoryNodeList(), we can skip multiplying with
-    // node.constant_data->tracking_to_pose.
     const auto& trajectory_node_pose =
         all_trajectory_nodes[constraint.node_id.trajectory_id]
                             [constraint.node_id.node_index]
                                 .pose;
-    // Similar to GetTrajectoryNodeList(), we can skip multiplying with
-    // node.constant_data->tracking_to_pose.
     const cartographer::transform::Rigid3d constraint_pose =
         submap_pose * constraint.pose.zbar_ij;
 
