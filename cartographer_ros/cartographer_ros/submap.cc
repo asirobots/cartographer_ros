@@ -31,39 +31,27 @@ std::unique_ptr<SubmapTexture> FetchSubmapTexture(
     LOG(ERROR) << "Error connecting trajectory service.";
     return nullptr;
   }
-
-  auto srv = std::make_shared<cartographer_ros_msgs::srv::SubmapQuery::Request>();
-  srv->trajectory_id = submap_id.trajectory_id;
-  srv->submap_index = submap_id.submap_index;
-  auto future = client->async_send_request(srv);
-  auto status = future.wait_for(std::chrono::seconds(7));
-  // NOTE: you cannot call this from the same thread that is running the node spinner!
-  // this will block that thread and it won't complete with out spinning!
-  if (status != std::future_status::ready) {
-    LOG(ERROR) << "Error querying trajectory service.";
-    return nullptr;
-  }
-  auto result = future.get();
-  std::string compressed_cells(result->cells.begin(),
-                               result->cells.end());
+  CHECK(!srv.response.textures.empty());
+  // TODO(gaschler): Forward all the textures.
+  const auto& texture = srv.response.textures[0];
+  std::string compressed_cells(texture.cells.begin(), texture.cells.end());
   std::string cells;
   ::cartographer::common::FastGunzipString(compressed_cells, &cells);
-  const int num_pixels = result->width * result->height;
+  const int num_pixels = texture.width * texture.height;
   CHECK_EQ(cells.size(), 2 * num_pixels);
   std::vector<char> intensity;
   intensity.reserve(num_pixels);
   std::vector<char> alpha;
   alpha.reserve(num_pixels);
-  for (int i = 0; i < result->height; ++i) {
-    for (int j = 0; j < result->width; ++j) {
-      intensity.push_back(cells[(i * result->width + j) * 2]);
-      alpha.push_back(cells[(i * result->width + j) * 2 + 1]);
+  for (int i = 0; i < texture.height; ++i) {
+    for (int j = 0; j < texture.width; ++j) {
+      intensity.push_back(cells[(i * texture.width + j) * 2]);
+      alpha.push_back(cells[(i * texture.width + j) * 2 + 1]);
     }
   }
   return ::cartographer::common::make_unique<SubmapTexture>(SubmapTexture{
-      result->submap_version, intensity, alpha, result->width,
-      result->height, result->resolution,
-      ToRigid3d(result->slice_pose)});
+      srv.response.submap_version, intensity, alpha, texture.width,
+      texture.height, texture.resolution, ToRigid3d(texture.slice_pose)});
 }
 
 }  // namespace cartographer_ros

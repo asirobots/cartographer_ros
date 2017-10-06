@@ -36,6 +36,8 @@ DEFINE_string(map_filename_to_store, "", "If non-empty, filename of a map to sav
 DEFINE_bool(
     start_trajectory_with_default_topics, true,
     "Enable to immediately start the first trajectory with default topics.");
+DEFINE_string(save_map_filename, "",
+              "If non-empty, serialize state and write it to disk before shutting down.");
 
 namespace cartographer_ros {
 
@@ -59,8 +61,11 @@ void Run() {
   rclcpp::spin(node.node_handle());
 
   node.FinishAllTrajectories();
-  node.RunFinalOptimization(); // not sure how to wait for this; it seems async
+  node.RunFinalOptimization();
 
+  if (!FLAGS_save_map_filename.empty()) {
+    node.SerializeState(FLAGS_save_map_filename);
+  }
   if (!FLAGS_map_filename_to_store.empty()) {
     node.SerializeState(FLAGS_map_filename_to_store);
   }

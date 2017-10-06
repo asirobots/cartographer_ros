@@ -33,6 +33,7 @@ google_initialize_cartographer_project()
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SubmapList.msg"
   "msg/SubmapEntry.msg"
+  "msg/SubmapTexture.msg"
   "msg/SensorTopics.msg"
   "msg/TrajectoryOptions.msg"
   "srv/SubmapQuery.srv"
