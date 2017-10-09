@@ -162,19 +162,21 @@ void Node::HandleSubmapListWorker() {
       has_new_msg_ = false;
       msg = last_msg_;
     }
-    // We do not do any work if nobody listens.
-    if (msg == nullptr || node_handle_->count_subscribers(occupancy_grid_publisher_->get_topic_name()) == 0) {
+
+    auto fetched_textures =
+        ::cartographer_ros::FetchSubmapTextures(id, &client_);
+    if (fetched_textures == nullptr) {
       continue;
     }
-    for (const auto& submap_msg : msg->submap) {
-      const SubmapId id{submap_msg.trajectory_id, submap_msg.submap_index};
-      SubmapState& submap_state = submaps_[id];
-      submap_state.pose = ToRigid3d(submap_msg.pose);
-      submap_state.metadata_version = submap_msg.submap_version;
-      if (submap_state.surface != nullptr &&
-          submap_state.version == submap_msg.submap_version) {
-        continue;
-      }
+    CHECK(!fetched_textures->textures.empty());
+    submap_state.version = fetched_textures->version;
+
+    // TODO(gaschler): Handle more textures than just the first one.
+    const auto fetched_texture = fetched_textures->textures.begin();
+    submap_state.width = fetched_texture->width;
+    submap_state.height = fetched_texture->height;
+    submap_state.slice_pose = fetched_texture->slice_pose;
+    submap_state.resolution = fetched_texture->resolution;
 
       auto fetched_texture = ::cartographer_ros::FetchSubmapTexture(id, client_);
       if (fetched_texture == nullptr) {

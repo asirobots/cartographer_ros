@@ -162,11 +162,11 @@ void Node::AddExtrapolator(const int trajectory_id,
 void Node::AddSensorSamplers(const int trajectory_id,
                              const TrajectoryOptions& options) {
   CHECK(sensor_samplers_.count(trajectory_id) == 0);
-  sensor_samplers_.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(trajectory_id),
-                    std::forward_as_tuple(options.rangefinder_sampling_ratio,
-                                          options.odometry_sampling_ratio,
-                                          options.imu_sampling_ratio));
+  sensor_samplers_.emplace(
+      std::piecewise_construct, std::forward_as_tuple(trajectory_id),
+      std::forward_as_tuple(options.rangefinder_sampling_ratio,
+                            options.odometry_sampling_ratio,
+                            options.imu_sampling_ratio));
 }
 
 void Node::PublishTrajectoryStates() {
