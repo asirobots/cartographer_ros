@@ -112,10 +112,10 @@ void MapBuilderBridge::HandleSubmapQuery(
   CHECK(response_proto.textures_size() > 0)
       << "empty textures given for submap: " << submap_id;
 
-  response.submap_version = response_proto.submap_version();
+  response->submap_version = response_proto.submap_version();
   for (const auto& texture_proto : response_proto.textures()) {
-    response.textures.emplace_back();
-    auto& texture = response.textures.back();
+    response->textures.emplace_back();
+    auto& texture = response->textures.back();
     texture.cells.insert(texture.cells.begin(), texture_proto.cells().begin(),
                          texture_proto.cells().end());
     texture.width = texture_proto.width();
@@ -124,7 +124,6 @@ void MapBuilderBridge::HandleSubmapQuery(
     texture.slice_pose = ToGeometryMsgPose(
         cartographer::transform::ToRigid3(texture_proto.slice_pose()));
   }
-  return true;
 }
 
 cartographer_ros_msgs::msg::SubmapList MapBuilderBridge::GetSubmapList() {
@@ -192,7 +191,7 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     marker.ns = "Trajectory " + std::to_string(trajectory_id);
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    marker.header.stamp = last_time.sec < 0 ? rclcpp::Time::now() : last_time;
+    marker.header.stamp = last_time.sec < 0 ? static_cast<builtin_interfaces::msg::Time>(rclcpp::Time::now()) : last_time;
     marker.header.frame_id = node_options_.map_frame;
     marker.color = ToMessage(cartographer::io::GetColor(trajectory_id));
     marker.scale.x = kTrajectoryLineStripMarkerScale;
@@ -227,7 +226,7 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetConstraintList() {
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
   constraint_intra_marker.type = visualization_msgs::msg::Marker::LINE_LIST;
-  constraint_intra_marker.header.stamp = last_time.sec < 0 ? rclcpp::Time::now() : last_time;
+  constraint_intra_marker.header.stamp = last_time.sec < 0 ? static_cast<builtin_interfaces::msg::Time>(rclcpp::Time::now()) : last_time;
   constraint_intra_marker.header.frame_id = node_options_.map_frame;
   constraint_intra_marker.scale.x = kConstraintMarkerScale;
   constraint_intra_marker.pose.orientation.w = 1.0;

@@ -31,10 +31,21 @@ std::unique_ptr<SubmapTextures> FetchSubmapTextures(
     LOG(ERROR) << "Error connecting trajectory service.";
     return nullptr;
   }
-  CHECK(!srv.response.textures.empty());
+
+  auto srv = std::make_shared<cartographer_ros_msgs::srv::SubmapQuery::Request>();
+  srv->trajectory_id = submap_id.trajectory_id;
+  srv->submap_index = submap_id.submap_index;
+  auto future = client->async_send_request(srv);
+  auto future_status = future.wait_for(std::chrono::seconds(7));
+  if (future_status != std::future_status::ready) {
+    LOG(ERROR) << "Unable to query trajectory service.";
+    return nullptr;
+  }
+  auto result = future.get();
+  CHECK(!result->textures.empty());
   auto response = ::cartographer::common::make_unique<SubmapTextures>();
-  response->version = srv.response.submap_version;
-  for (const auto& texture : srv.response.textures) {
+  response->version = result->submap_version;
+  for (const auto& texture : result->textures) {
     std::string compressed_cells(texture.cells.begin(), texture.cells.end());
     std::string cells;
     ::cartographer::common::FastGunzipString(compressed_cells, &cells);

@@ -106,9 +106,9 @@ cartographer_ros_msgs::msg::TrajectoryOptions::SharedPtr ToRosMessage(
   msg->num_multi_echo_laser_scans = options.num_multi_echo_laser_scans;
   msg->num_subdivisions_per_laser_scan = options.num_subdivisions_per_laser_scan;
   msg->num_point_clouds = options.num_point_clouds;
-  msg.rangefinder_sampling_ratio = options.rangefinder_sampling_ratio;
-  msg.odometry_sampling_ratio = options.odometry_sampling_ratio;
-  msg.imu_sampling_ratio = options.imu_sampling_ratio;
+  msg->rangefinder_sampling_ratio = options.rangefinder_sampling_ratio;
+  msg->odometry_sampling_ratio = options.odometry_sampling_ratio;
+  msg->imu_sampling_ratio = options.imu_sampling_ratio;
   options.trajectory_builder_options.SerializeToString(
       &msg->trajectory_builder_options_proto);
   return msg;
