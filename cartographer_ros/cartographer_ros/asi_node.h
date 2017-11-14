@@ -6,7 +6,6 @@
 #define CARTOGRAPHER_ROS_ASI_NODE_H
 
 #include "node.h"
-#include "localization_msgs/msg/pose2_d_with_covariance_relative_stamped.hpp"
 #include "localization_msgs/msg/pose_with_covariance_lean_relative_stamped.hpp"
 #include "localization_msgs/msg/body_velocity_with_covariance_lean_stamped.hpp"
 #include "localization_msgs/msg/body_accel_with_covariance_lean_stamped.hpp"
@@ -34,12 +33,10 @@ namespace cartographer_ros {
         const TrajectoryOptions &options,
         const cartographer_ros_msgs::msg::SensorTopics &topics) override;
 
-    std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> pose2d_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>> pose3d_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>> velocity_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyAccelWithCovarianceLeanStamped>> acceleration_publisher_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr asi_clock_subscriber_ = nullptr;
-    rclcpp::SubscriptionBase::SharedPtr pose2d_subscriber_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr pose3d_subscriber_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr lean_twist_subscriber_ = nullptr;
     rclcpp::SubscriptionBase::SharedPtr lean_imu_subscriber_ = nullptr;
