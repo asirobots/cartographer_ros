@@ -39,7 +39,6 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "asiframework_msgs/msg/asi_time.hpp"
 #include "tf2_eigen/tf2_eigen.h"
 #include "visualization_msgs/msg/marker_array.hpp"
 
