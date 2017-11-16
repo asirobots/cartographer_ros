@@ -57,6 +57,8 @@
   <build_depend>urdf</build_depend>
   <build_depend>visualization_msgs</build_depend>
 
+  <build_depend>localization_msgs</build_depend>
+
   <exec_depend>cartographer_ros_msgs</exec_depend>
   <exec_depend>console_bridge</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
@@ -66,6 +68,8 @@
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_eigen</exec_depend>
   <exec_depend>tf2_msgs</exec_depend>
+
+  <exec_depend>localization_msgs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
