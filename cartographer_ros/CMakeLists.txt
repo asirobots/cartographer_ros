@@ -116,6 +116,10 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLU
 
 add_subdirectory(cartographer_ros)
 
+add_executable(pose_translator pose_translator/pose_translator.cpp)
+ament_target_dependencies(pose_translator "rclcpp" "geometry_msgs" "localization_msgs")
+install(TARGETS pose_translator RUNTIME DESTINATION bin)
+
 install(TARGETS
   ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
