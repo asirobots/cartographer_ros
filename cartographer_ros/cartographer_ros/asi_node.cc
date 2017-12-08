@@ -253,7 +253,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
         FLAGS_pose_with_covariance_input_topic,
         [trajectory_id, this](geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr lean_msg) {
 
-          if (!std::isnan(lean_msg->pose.covariance[0])) {
+          if (!std::isnan(lean_msg->pose.pose.position.x)) {
             auto msg = std::make_shared<nav_msgs::msg::Odometry>();
             msg->header = lean_msg->header;
             msg->child_frame_id = "base_link"; // same as options.publishing_frame?
