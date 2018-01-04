@@ -15,7 +15,7 @@
   limitations under the License.
 -->
 
-<package format="2">
+<package format="3">
   <name>cartographer_ros_msgs</name>
   <version>0.2.0</version>
   <description>
@@ -27,6 +27,8 @@
   <license>Apache 2.0</license>
 
   <url>https://github.com/googlecartographer/cartographer_ros</url>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
