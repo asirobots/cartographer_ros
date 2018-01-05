@@ -26,6 +26,19 @@ DEFINE_string(pose_with_covariance_input_topic, "", "Input topic for geometry_ms
 
 DEFINE_string(twist_input_topic, "", "Input topic for geometry_msgs::TwistStamped");
 
+DEFINE_string(asi_pose2d_output_topic, "", "Output topic for geometry_msgs::PoseWithCovarianceStamped");
+DEFINE_string(asi_pose_output_topic, "", "Output topic for geometry_msgs::PoseWithCovarianceStamped");
+
+DEFINE_string(asi_velocity_output_topic, "", "Output topic for geometry_msgs::TwistWithCovarianceStamped");
+
+DEFINE_string(asi_acceleration_output_topic, "", "Output topic for geometry_msgs::AccelWithCovarianceStamped");
+
+DEFINE_string(asi_pose_input_topic, "", "Input topic for geometry_msgs::PoseWithCovarianceStamped");
+
+DEFINE_string(asi_imulean_input_topic, "", "Input topic for sensor_msgs::Imu");
+
+DEFINE_string(asi_twistlean_input_topic, "", "Input topic for geometry_msgs::TwistStamped");
+
 DEFINE_string(asi_clock_input_topic, "", "Input topic for asiframework::AsiTime");
 
 DEFINE_bool(disable_default_imu_topic, true, "By default, the default IMU topic is disabled");
