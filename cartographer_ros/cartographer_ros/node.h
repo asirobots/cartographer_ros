@@ -92,7 +92,7 @@ class Node {
   // Loads a persisted state to use as a map.
   void LoadMap(const std::string& map_filename);
 
-  rclcpp::node::Node::SharedPtr node_handle();
+  rclcpp::Node::SharedPtr node_handle();
 
  protected:
   virtual cartographer_ros_msgs::msg::SensorTopics DefaultSensorTopics();
@@ -142,14 +142,14 @@ class Node {
   cartographer::common::Mutex mutex_;
   MapBuilderBridge map_builder_bridge_ GUARDED_BY(mutex_);
 
-  ::rclcpp::node::Node::SharedPtr node_handle_;
-  ::rclcpp::publisher::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
-  ::rclcpp::publisher::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr trajectory_node_list_publisher_;
-  ::rclcpp::publisher::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr constraint_list_publisher_;
+  ::rclcpp::Node::SharedPtr node_handle_;
+  ::rclcpp::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
+  ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr trajectory_node_list_publisher_;
+  ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr constraint_list_publisher_;
 
   // These ros::ServiceServers need to live for the lifetime of the node.
-  std::vector<rclcpp::service::ServiceBase::SharedPtr> service_servers_;
-  ::rclcpp::publisher::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr scan_matched_point_cloud_publisher_;
+  std::vector<rclcpp::ServiceBase::SharedPtr> service_servers_;
+  ::rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr scan_matched_point_cloud_publisher_;
   cartographer::common::Time last_scan_matched_point_cloud_time_ =
       cartographer::common::Time::min();
 
