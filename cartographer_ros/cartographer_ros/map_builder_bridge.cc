@@ -192,7 +192,7 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
     marker.ns = "Trajectory " + std::to_string(trajectory_id);
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    marker.header.stamp = last_time.sec < 0 ? system_clock_.now() : last_time;
+    marker.header.stamp = last_time.sec < 0 ? static_cast<builtin_interfaces::msg::Time>(system_clock_.now()) : last_time;
     marker.header.frame_id = node_options_.map_frame;
     marker.color = ToMessage(cartographer::io::GetColor(trajectory_id));
     marker.scale.x = kTrajectoryLineStripMarkerScale;
@@ -227,7 +227,7 @@ visualization_msgs::msg::MarkerArray MapBuilderBridge::GetConstraintList() {
   constraint_intra_marker.id = marker_id++;
   constraint_intra_marker.ns = "Intra constraints";
   constraint_intra_marker.type = visualization_msgs::msg::Marker::LINE_LIST;
-  constraint_intra_marker.header.stamp = last_time.sec < 0 ? system_clock_.now() : last_time;
+  constraint_intra_marker.header.stamp = last_time.sec < 0 ? static_cast<builtin_interfaces::msg::Time>(system_clock_.now()) : last_time;
   constraint_intra_marker.header.frame_id = node_options_.map_frame;
   constraint_intra_marker.scale.x = kConstraintMarkerScale;
   constraint_intra_marker.pose.orientation.w = 1.0;
