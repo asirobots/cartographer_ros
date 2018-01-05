@@ -115,8 +115,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${urdfdom_headers_INCLU
 
 add_subdirectory(cartographer_ros)
 
-install(TARGETS pose_translator RUNTIME DESTINATION bin)
-
 install(TARGETS
   ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
