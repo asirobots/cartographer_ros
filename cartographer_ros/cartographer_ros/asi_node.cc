@@ -92,7 +92,6 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
         poseMsg.pose.covariance[28] = poseMsg.pose.covariance[35] = 0.05;
     pose3d_cov_publisher_->publish(poseMsg);
   }
-  }
 
   if (!FLAGS_odometry_output_topic.empty() && last_pose_estimate_.time > cartographer::common::Time::min()) {
     auto delta_time = cartographer::common::ToSeconds(trajectory_state.pose_estimate.time - last_pose_estimate_.time);
@@ -217,7 +216,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
         [this](asiframework_msgs::msg::AsiTime::ConstSharedPtr msg) {
           map_builder_bridge_.last_time = msg->time;
         }));
-}
+  }
 
 
 std::unordered_set<string>
