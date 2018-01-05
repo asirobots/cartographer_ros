@@ -146,6 +146,7 @@ class Node {
   ::rclcpp::Publisher<::cartographer_ros_msgs::msg::SubmapList>::SharedPtr submap_list_publisher_;
   ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr trajectory_node_list_publisher_;
   ::rclcpp::Publisher<::visualization_msgs::msg::MarkerArray>::SharedPtr constraint_list_publisher_;
+  rclcpp::Clock system_clock_;
 
   // These ros::ServiceServers need to live for the lifetime of the node.
   std::vector<rclcpp::ServiceBase::SharedPtr> service_servers_;

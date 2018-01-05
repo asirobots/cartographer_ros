@@ -193,7 +193,7 @@ void Node::PublishTrajectoryStates() {
     // time instead. Since tf knows how to interpolate, providing newer
     // information is better.
     const ::cartographer::common::Time now =
-        std::max(FromRos(map_builder_bridge_.last_time.sec < 0 ? static_cast<builtin_interfaces::msg::Time>(rclcpp::Time::now()) : map_builder_bridge_.last_time),
+        std::max(FromRos(map_builder_bridge_.last_time.sec < 0 ? static_cast<builtin_interfaces::msg::Time>(system_clock_.now()) : map_builder_bridge_.last_time),
                  extrapolator.GetLastPoseTime());
     stamped_transform.header.stamp = ToRos(now);
     const Rigid3d tracking_to_local = extrapolator.ExtrapolatePose(now);
