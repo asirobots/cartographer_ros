@@ -11,9 +11,6 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
-#include "localization_msgs/msg/body_velocity_stamped.hpp"
-#include "localization_msgs/msg/imu_lean_stamped.hpp"
-#include "localization_msgs/msg/pose_with_covariance_lean_relative_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "framework/os/Time.hpp"
 
@@ -28,21 +25,6 @@ DEFINE_string(pose_input_topic, "", "Input topic for geometry_msgs::PoseStamped"
 DEFINE_string(pose_with_covariance_input_topic, "", "Input topic for geometry_msgs::PoseWithCovarianceStamped");
 
 DEFINE_string(twist_input_topic, "", "Input topic for geometry_msgs::TwistStamped");
-
-DEFINE_string(asi_pose2d_output_topic, "", "Output topic for localization_msgs::Pose2DWithCovarianceRelativeStamped");
-DEFINE_string(asi_pose_output_topic, "", "Output topic for localization_msgs::PoseWithCovarianceLeanRelativeStamped");
-
-DEFINE_string(asi_velocity_output_topic, "",
-              "Output topic for localization_msgs::BodyVelocityWithCovarianceLeanStamped");
-
-DEFINE_string(asi_acceleration_output_topic, "",
-              "Output topic for localization_msgs::BodyAccelWithCovarianceLeanStamped");
-
-DEFINE_string(asi_pose_input_topic, "", "Input topic for localization_msgs::PoseWithCovarianceLeanRelativeStamped");
-
-DEFINE_string(asi_imulean_input_topic, "", "Input topic for localization_msgs::ImuLeanStamped");
-
-DEFINE_string(asi_twistlean_input_topic, "", "Input topic for localization_msgs::BodyVelocityStamped");
 
 DEFINE_string(asi_clock_input_topic, "", "Input topic for asiframework::AsiTime");
 
@@ -64,22 +46,6 @@ cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_opt
   if (!FLAGS_pose_with_covariance_output_topic.empty()) {
     pose3d_cov_publisher_ = node_handle_->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
         FLAGS_pose_with_covariance_output_topic, rmw_qos_profile_default);
-  }
-  if (!FLAGS_asi_pose2d_output_topic.empty()) {
-    asi_pose2d_publisher_ = node_handle_->create_publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>(
-        FLAGS_asi_pose2d_output_topic, rmw_qos_profile_default);
-  }
-  if (!FLAGS_asi_pose_output_topic.empty()) {
-    asi_pose3d_publisher_ = node_handle_->create_publisher<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(
-        FLAGS_asi_pose_output_topic, rmw_qos_profile_default);
-  }
-  if (!FLAGS_asi_velocity_output_topic.empty()) {
-    asi_velocity_publisher_ = node_handle_->create_publisher<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>(
-        FLAGS_asi_velocity_output_topic, rmw_qos_profile_default);
-  }
-  if (!FLAGS_asi_acceleration_output_topic.empty()) {
-    asi_acceleration_publisher_ = node_handle_->create_publisher<localization_msgs::msg::BodyAccelWithCovarianceLeanStamped>(
-        FLAGS_asi_acceleration_output_topic, rmw_qos_profile_default);
   }
 }
 
@@ -126,42 +92,6 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
         poseMsg.pose.covariance[28] = poseMsg.pose.covariance[35] = 0.05;
     pose3d_cov_publisher_->publish(poseMsg);
   }
-
-  if (!FLAGS_asi_pose_output_topic.empty()) {
-    localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped poseMsg;
-    poseMsg.header.stamp = timestamp;
-    poseMsg.header.frame_id = node_options_.map_frame;
-    poseMsg.child_frame_id = trajectory_state.trajectory_options.published_frame;
-
-    auto map_to_publishing = tracking_to_map * (*trajectory_state.published_to_tracking);
-    poseMsg.pose = MakePose(map_to_publishing);
-
-    // TODO: fix this once cartographer exposes some form of position confidence
-    poseMsg.position_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
-    poseMsg.orientation_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
-
-    asi_pose3d_publisher_->publish(poseMsg);
-  }
-
-  if (!FLAGS_asi_velocity_output_topic.empty() && last_pose_estimate_.time > cartographer::common::Time::min()) {
-    auto delta_time = cartographer::common::ToSeconds(trajectory_state.pose_estimate.time - last_pose_estimate_.time);
-    if (delta_time > 0.0) {
-      auto velocityMsg = std::make_shared<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>();
-      velocityMsg->header.stamp = timestamp;
-      velocityMsg->header.frame_id = trajectory_state.trajectory_options.tracking_frame;
-      auto delta_pose = trajectory_state.pose_estimate.pose.inverse() * last_pose_estimate_.pose;
-      auto linear_velocity = delta_pose.translation() / delta_time;
-      velocityMsg->twist.linear.x = linear_velocity.x();
-      velocityMsg->twist.linear.y = linear_velocity.y();
-      velocityMsg->twist.linear.z = linear_velocity.z();
-      velocityMsg->twist.angular.x = delta_pose.rotation().x() * 2.0 / delta_time;
-      velocityMsg->twist.angular.y = delta_pose.rotation().y() * 2.0 / delta_time;
-      velocityMsg->twist.angular.z = delta_pose.rotation().z() * 2.0 / delta_time;
-      velocityMsg->linear_velocity_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
-      velocityMsg->angular_velocity_covariance = {0.05, 0.0, 0.0, 0.05, 0.0, 0.05};
-
-      asi_velocity_publisher_->publish(velocityMsg);
-    }
   }
 
   if (!FLAGS_odometry_output_topic.empty() && last_pose_estimate_.time > cartographer::common::Time::min()) {
@@ -192,29 +122,6 @@ void cartographer_ros::AsiNode::PublishOtherOdometry(const std_msgs::msg::Header
 
       odometry_publisher_->publish(poseMsg);
     }
-  }
-  if (!FLAGS_asi_pose2d_output_topic.empty()) {
-    localization_msgs::msg::Pose2DWithCovarianceRelativeStamped poseMsg;
-    poseMsg.header.stamp = timestamp;
-    poseMsg.header.frame_id = node_options_.map_frame;
-    poseMsg.child_frame_id = trajectory_state.trajectory_options.published_frame;
-
-    auto map_to_publishing = tracking_to_map * (*trajectory_state.published_to_tracking);
-    auto &orientation = map_to_publishing.rotation();
-    auto &position = map_to_publishing.translation();
-    poseMsg.pose2d.x = position.x();
-    poseMsg.pose2d.y = position.y();
-    // float yaw   = atan2(2.0 * (q.q3 * q.q0 + q.q1 * q.q2) , - 1.0 + 2.0 * (q.q0 * q.q0 + q.q1 * q.q1)); for q0 = w, q1 = x
-    auto q0 = orientation.w();
-    auto q1 = orientation.x();
-    auto q2 = orientation.y();
-    auto q3 = orientation.z();
-    poseMsg.pose2d.theta = std::atan2(2.0 * (q3 * q0 + q1 * q2), -1.0 + 2.0 * (q0 * q0 + q1 * q1));
-
-    poseMsg.position_covariance = {0.05, 0.0, 0.05};
-    poseMsg.yaw_covariance = 0.05;
-
-    asi_pose2d_publisher_->publish(poseMsg);
   }
 
   if (!FLAGS_asi_acceleration_output_topic.empty()) {
@@ -310,85 +217,6 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
         [this](asiframework_msgs::msg::AsiTime::ConstSharedPtr msg) {
           map_builder_bridge_.last_time = msg->time;
         }));
-  }
-
-  if (!FLAGS_asi_pose_input_topic.empty()) {
-    subscribers_.push_back(node_handle()->
-        create_subscription<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>(
-        FLAGS_asi_pose_input_topic,
-        [trajectory_id, this](localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped::ConstSharedPtr lean_msg) {
-
-          if (!std::isnan(lean_msg->pose.position.x)) {
-            auto msg = std::make_shared<nav_msgs::msg::Odometry>();
-            msg->header = lean_msg->header;
-            msg->child_frame_id = lean_msg->child_frame_id;
-            msg->pose.pose = lean_msg->pose;
-            // msg->pose.covariance not used
-            // msg->twist not used
-            HandleOdometryMessage(trajectory_id, FLAGS_asi_pose_input_topic, msg);
-          }
-        }, rmw_qos_profile_default));
-  }
-
-  if (!FLAGS_asi_twistlean_input_topic.empty()) {
-    // NOTE: this doesn't actually work yet
-
-    subscribers_.push_back(node_handle()->
-        create_subscription<localization_msgs::msg::BodyVelocityStamped>(
-        FLAGS_asi_twistlean_input_topic,
-        [trajectory_id, &options, this](localization_msgs::msg::BodyVelocityStamped::ConstSharedPtr lean_msg) {
-          // only the relative position of the odometry is used; we can start it with identity
-          auto current_twist_odometry_time = framework::toSecondsAsDouble(lean_msg->header.stamp);
-          auto delta_time = current_twist_odometry_time - last_twist_odometry_time_;
-          last_twist_odometry_time_ = current_twist_odometry_time;
-          if (delta_time > 0.0 && !std::isnan(lean_msg->twist.linear.x)) {
-
-            //std::cout << "TWIST: " << lean_msg->twist.linear.x << ", " << lean_msg->twist.angular.z << ", " << delta_time << "\n";
-            //std::cout << "PREV_TRANS_ROT: " << last_twist_odometry_.DebugString() << "\n";
-
-            const auto linear_delta = Eigen::Vector3d(lean_msg->twist.linear.x * delta_time, 0.0, 0.0);
-            const auto angular_delta = cartographer::transform::RollPitchYaw(0.0, 0.0, lean_msg->twist.angular.z * delta_time);
-
-            const auto translation_estimate = last_twist_odometry_.rotation() * linear_delta + last_twist_odometry_.translation();
-            const auto rotation_estimate = angular_delta * last_twist_odometry_.rotation();
-
-            last_twist_odometry_ = {translation_estimate, rotation_estimate};
-
-            auto msg = std::make_shared<nav_msgs::msg::Odometry>();
-            msg->header = lean_msg->header;
-            msg->child_frame_id = "base_link"; //options.published_frame?
-            msg->pose.pose.position.x = translation_estimate.x();
-            msg->pose.pose.position.y = translation_estimate.y();
-            msg->pose.pose.position.z = translation_estimate.z();
-            msg->pose.pose.orientation.w = rotation_estimate.w();
-            msg->pose.pose.orientation.x = rotation_estimate.x();
-            msg->pose.pose.orientation.y = rotation_estimate.y();
-            msg->pose.pose.orientation.z = rotation_estimate.z();
-            // msg->pose.covariance not used
-            // msg->twist not used
-
-            HandleOdometryMessage(trajectory_id, FLAGS_asi_twistlean_input_topic, msg);
-          }
-        }, rmw_qos_profile_default));
-
-  }
-
-  if (!FLAGS_asi_imulean_input_topic.empty()) {
-    subscribers_.push_back(node_handle()->
-        create_subscription<localization_msgs::msg::ImuLeanStamped>(
-        FLAGS_asi_imulean_input_topic,
-        [trajectory_id, this](localization_msgs::msg::ImuLeanStamped::ConstSharedPtr lean_msg) {
-
-          auto msg = std::make_shared<sensor_msgs::msg::Imu>();
-          msg->header = lean_msg->header;
-          msg->angular_velocity = lean_msg->imu.angular_rates;
-          msg->linear_acceleration = lean_msg->imu.linear_acceleration;
-          // msg->*_covariance not used
-          // msg->orientation not used
-
-          HandleImuMessage(trajectory_id, FLAGS_asi_imulean_input_topic, msg);
-        }, rmw_qos_profile_default));
-  }
 }
 
 

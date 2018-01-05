@@ -8,10 +8,6 @@
 #include "node.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
-#include "localization_msgs/msg/pose2_d_with_covariance_relative_stamped.hpp"
-#include "localization_msgs/msg/pose_with_covariance_lean_relative_stamped.hpp"
-#include "localization_msgs/msg/body_velocity_with_covariance_lean_stamped.hpp"
-#include "localization_msgs/msg/body_accel_with_covariance_lean_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 
 namespace cartographer_ros {
@@ -39,10 +35,6 @@ namespace cartographer_ros {
     std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odometry_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> pose3d_publisher_ = nullptr;
     std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>> pose3d_cov_publisher_ = nullptr;
-    std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::Pose2DWithCovarianceRelativeStamped>> asi_pose2d_publisher_ = nullptr;
-    std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::PoseWithCovarianceLeanRelativeStamped>> asi_pose3d_publisher_ = nullptr;
-    std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyVelocityWithCovarianceLeanStamped>> asi_velocity_publisher_ = nullptr;
-    std::shared_ptr<rclcpp::Publisher<localization_msgs::msg::BodyAccelWithCovarianceLeanStamped>> asi_acceleration_publisher_ = nullptr;
     std::vector<rclcpp::SubscriptionBase::SharedPtr> subscribers_;
 
     tf2_ros::Buffer *tf_buffer_;

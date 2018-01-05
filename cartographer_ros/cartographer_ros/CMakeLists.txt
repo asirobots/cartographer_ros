@@ -24,7 +24,6 @@ set(PACKAGE_DEPS
         "geometry_msgs"
         "gMock"
         "gLog"
-        "localization_msgs"
         "LUA"
         "nav_msgs"
         "PCL"
