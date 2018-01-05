@@ -230,6 +230,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
           map_builder_bridge_.last_time = msg->time;
         }));
   }
+}
 
 
 std::unordered_set<string>
