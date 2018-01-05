@@ -53,7 +53,7 @@ TrajectoryOptions LoadOptions() {
 }
 
 bool Run() {
-  rclcpp::node::Node node_handle("start_trajectory_node");
+  rclcpp::Node node_handle("start_trajectory_node");
   auto client = node_handle.create_client<cartographer_ros_msgs::srv::StartTrajectory>(
           kStartTrajectoryServiceName);
   auto srv = std::make_shared<cartographer_ros_msgs::srv::StartTrajectory::Request>();
