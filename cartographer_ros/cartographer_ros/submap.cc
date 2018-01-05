@@ -25,7 +25,7 @@ namespace cartographer_ros {
 
 std::unique_ptr<SubmapTextures> FetchSubmapTextures(
     const ::cartographer::mapping::SubmapId& submap_id,
-    ::rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client) {
+    ::rclcpp::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client) {
 
   if (!client->wait_for_service(std::chrono::seconds(5))) {
     LOG(ERROR) << "Error connecting trajectory service.";

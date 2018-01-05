@@ -45,7 +45,7 @@ struct SubmapTextures {
 // on error.
 std::unique_ptr<SubmapTextures> FetchSubmapTextures(
     const ::cartographer::mapping::SubmapId& submap_id,
-    ::rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client);
+    ::rclcpp::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client);
 
 }  // namespace cartographer_ros
 

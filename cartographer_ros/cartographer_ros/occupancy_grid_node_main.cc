@@ -121,7 +121,7 @@ class Node {
 
   std::mutex mutex_;
   std::condition_variable condition_;
-  rclcpp::client::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_;
+  rclcpp::Client<::cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_;
   rclcpp::SubscriptionBase::SharedPtr submap_list_subscriber_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_publisher_;
   std::map<SubmapId, SubmapState> submaps_;
