@@ -7,7 +7,7 @@
 #include "msg_conversion.h"
 #include "tf2/time.h"
 #include "cartographer/transform/rigid_transform.h"
-#include "asiframework_msgs/msg/asi_time.hpp"
+#include "builtin_interfaces/msg/time.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
@@ -39,7 +39,7 @@ DEFINE_string(asi_imulean_input_topic, "", "Input topic for sensor_msgs::Imu");
 
 DEFINE_string(asi_twistlean_input_topic, "", "Input topic for geometry_msgs::TwistStamped");
 
-DEFINE_string(asi_clock_input_topic, "", "Input topic for asiframework::AsiTime");
+DEFINE_string(asi_clock_input_topic, "", "Input topic for builtin_interfaces::Time");
 
 DEFINE_bool(disable_default_imu_topic, true, "By default, the default IMU topic is disabled");
 
@@ -224,10 +224,10 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
 
 
   if (!FLAGS_asi_clock_input_topic.empty()) {
-    subscribers_.push_back(node_handle()->create_subscription<asiframework_msgs::msg::AsiTime>(
+    subscribers_.push_back(node_handle()->create_subscription<builtin_interfaces::msg::Time>(
         FLAGS_asi_clock_input_topic,
-        [this](asiframework_msgs::msg::AsiTime::ConstSharedPtr msg) {
-          map_builder_bridge_.last_time = msg->time;
+        [this](builtin_interfaces::msg::Time::ConstSharedPtr msg) {
+          map_builder_bridge_.last_time = *msg;
         }));
   }
 }
