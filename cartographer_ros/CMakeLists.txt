@@ -21,8 +21,6 @@ if(NOT WIN32)
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(asiframework REQUIRED)
-find_package(asiframework_msgs REQUIRED)
 find_package(cartographer REQUIRED)
 find_package(cartographer_ros_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
