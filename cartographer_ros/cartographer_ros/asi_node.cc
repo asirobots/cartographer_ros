@@ -12,7 +12,6 @@
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
-#include "framework/os/Time.hpp"
 
 DEFINE_string(odometry_output_topic, "", "Output topic for nav_msgs::Odometry");
 
@@ -60,6 +59,12 @@ cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_opt
     pose3d_cov_publisher_ = node_handle_->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
         FLAGS_pose_with_covariance_output_topic, rmw_qos_profile_default);
   }
+}
+
+static double toSecondsAsDouble(const builtin_interfaces::msg::Time& msg)
+{
+    auto time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(seconds(msg.sec) + nanoseconds(msg.nanosec));
+    return std::chrono::duration<double>(time_point.time_since_epoch()).count();
 }
 
 static geometry_msgs::msg::Pose MakePose(const cartographer::transform::Rigid3<double>& map_to_publishing){
@@ -189,7 +194,7 @@ void cartographer_ros::AsiNode::LaunchSubscribers(const cartographer_ros::Trajec
         FLAGS_twist_input_topic,
         [trajectory_id, this](geometry_msgs::msg::TwistStamped::ConstSharedPtr lean_msg) {
           // only the relative position of the odometry is used; we can start it with identity
-          auto current_twist_odometry_time = framework::toSecondsAsDouble(lean_msg->header.stamp);
+          auto current_twist_odometry_time = toSecondsAsDouble(lean_msg->header.stamp);
           auto delta_time = current_twist_odometry_time - last_twist_odometry_time_;
           last_twist_odometry_time_ = current_twist_odometry_time;
           if (delta_time > 0.0 && !std::isnan(lean_msg->twist.linear.x)) {
