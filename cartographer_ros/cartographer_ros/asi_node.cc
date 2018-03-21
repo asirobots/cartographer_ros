@@ -63,7 +63,7 @@ cartographer_ros::AsiNode::AsiNode(const cartographer_ros::NodeOptions &node_opt
 
 static double toSecondsAsDouble(const builtin_interfaces::msg::Time& msg)
 {
-    auto time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(seconds(msg.sec) + nanoseconds(msg.nanosec));
+    auto time_point = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(std::chrono::seconds(msg.sec) + std::chrono::nanoseconds(msg.nanosec));
     return std::chrono::duration<double>(time_point.time_since_epoch()).count();
 }
 
