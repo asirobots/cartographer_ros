@@ -54,7 +54,7 @@ rclcpp::SubscriptionBase::SharedPtr SubscribeWithHandler(
                           typename MessageType::ConstSharedPtr),
     const int trajectory_id, const string& topic,
     ::rclcpp::Node::SharedPtr node_handle, Node* const node) {
-      rmw_qos_profile_t qos = rmw_qos_profile_default;
+      rmw_qos_profile_t qos = rmw_qos_profile_sensor_data;
       qos.depth = kInfiniteSubscriberQueueSize;
       return node_handle->create_subscription<MessageType>(
           topic,
